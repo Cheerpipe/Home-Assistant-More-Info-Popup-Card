@@ -506,6 +506,27 @@ export class MoreInfoControlsCard extends LitElement {
     }
   }
 
+  /**
+   * `wrap: true`: the native container's large-screen layout (centered rows,
+   * 2 × 2 for four chips), applied on every screen size.
+   */
+  private _renderWrapped(chips: unknown[]) {
+    const count = chips.length;
+    return html`
+      <div class="wrap-controls">
+        <div
+          class=${classMap({
+            "wrap-scroll": true,
+            [`items-${count}`]: true,
+            multiline: count >= 4,
+          })}
+        >
+          ${chips}
+        </div>
+      </div>
+    `;
+  }
+
   protected override render() {
     if (!this._config || !this.hass) return nothing;
     const appearance = this._config.appearance ?? "plain";
@@ -537,11 +558,17 @@ export class MoreInfoControlsCard extends LitElement {
                       : nothing
                   }
                   ${
-                    chips.length
-                      ? html`<ha-more-info-control-select-container>
-                          ${chips.map(({ item, index }) => this._renderItem(item, index))}
-                        </ha-more-info-control-select-container>`
-                      : nothing
+                    !chips.length
+                      ? nothing
+                      : this._config.wrap
+                        ? this._renderWrapped(
+                            chips.map(({ item, index }) =>
+                              this._renderItem(item, index),
+                            ),
+                          )
+                        : html`<ha-more-info-control-select-container>
+                            ${chips.map(({ item, index }) => this._renderItem(item, index))}
+                          </ha-more-info-control-select-container>`
                   }
                 `
         }
@@ -575,6 +602,36 @@ export class MoreInfoControlsCard extends LitElement {
       }
       .chip.number[disabled] {
         color: var(--disabled-color);
+      }
+      /* ha-more-info-control-select-container, large-screen rules */
+      .wrap-controls {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+      }
+      .wrap-scroll {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: var(--ha-space-3);
+        width: 100%;
+        max-width: 450px;
+        margin: auto;
+      }
+      .wrap-scroll > * {
+        min-width: 120px;
+        max-width: 160px;
+        flex: none;
+      }
+      .wrap-scroll.items-4 {
+        max-width: 300px;
+      }
+      .wrap-scroll.items-3 > * {
+        max-width: 140px;
+      }
+      .wrap-scroll.multiline > * {
+        width: 140px;
       }
       /* more-info-vacuum.ts command buttons */
       .buttons {

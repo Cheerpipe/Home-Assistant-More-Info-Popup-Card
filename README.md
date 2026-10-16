@@ -135,6 +135,8 @@ Mix any of these item types:
 | `action` | chip with optional chevron   | any `tap_action`: open another popup (`navigate` to `#id`), more-info, perform an action…       |
 | `button` | native square command button | `perform_action` (e.g. `vacuum.start`) or `tap_action`; `button`/`scene`/`script` work directly |
 
+On phones the chips row scrolls sideways, like Home Assistant; `wrap: true` puts the chips in rows instead.
+
 The type is inferred when omitted. Select attributes: `effect`, `preset_mode`,
 `fan_mode`, `hvac_mode`, `swing_mode`, `swing_horizontal_mode`, `fan_speed`, `mode`,
 `direction`, `oscillating`, `operation_mode`, `away_mode`, `source`, `sound_mode`

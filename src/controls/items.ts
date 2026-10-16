@@ -50,6 +50,11 @@ export const BUTTON_DEFAULTS: Record<string, string> = {
 export interface ControlsCardConfig extends LovelaceCardConfig {
   controls: ControlItemConfig[];
   appearance?: CardAppearance;
+  /**
+   * Wrap chips into rows on phones too. Default (false) is the native
+   * behavior: a single row that scrolls horizontally on phones.
+   */
+  wrap?: boolean;
 }
 
 export const INACTIVE_STATES = [

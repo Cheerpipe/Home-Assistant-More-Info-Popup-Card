@@ -106,9 +106,16 @@ export const controlsCardForm = () => ({
         },
       },
     },
-    APPEARANCE,
+    {
+      name: "",
+      type: "grid",
+      schema: [APPEARANCE, { name: "wrap", selector: { boolean: {} } }],
+    },
   ],
   computeLabel,
+  computeHelper: (schema: { name: string }) =>
+    localize(lang(), `controls.${schema.name}_helper` as TranslationKey) ||
+    undefined,
   /** Renamed options ({value, name, icon}) are YAML only. */
   assertConfig: (config: { controls?: { options?: unknown[] }[] }) => {
     if (

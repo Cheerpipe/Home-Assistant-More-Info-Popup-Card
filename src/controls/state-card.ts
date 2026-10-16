@@ -143,16 +143,30 @@ export class MoreInfoStateCard extends LitElement {
     if (this._ready || !this._config || !this._stateObj) return;
     const control = this._controlName;
     const spec = control ? STATE_CONTROLS[control] : undefined;
-    const key = `${this._config.entity}:${control}`;
+    const needsHeader =
+      this._showState && this._config.show_last_changed !== false;
+    const key = `${this._config.entity}:${control}:${needsHeader}`;
     if (key === this._loadingKey) return;
     this._loadingKey = key;
-    const tags = ["ha-more-info-state-header", ...(spec ? [spec.tag] : [])];
-    ensureMoreInfoElements(
-      spec?.load ?? computeDomain(this._config.entity),
-      tags,
-    ).then(() => {
+    const loads: Promise<boolean>[] = [];
+    if (spec) loads.push(ensureMoreInfoElements(spec.load, [spec.tag]));
+    // Climate, humidifier and water heater controls don't import the header:
+    // load it from a domain whose more-info has one.
+    if (needsHeader) {
+      loads.push(
+        ensureMoreInfoElements("switch", ["ha-more-info-state-header"]),
+      );
+    }
+    Promise.all(loads).then(() => {
       if (this._loadingKey === key) this._ready = true;
     });
+  }
+
+  private get _showState(): boolean {
+    const domain = computeDomain(this._config!.entity);
+    return (
+      this._config!.show_state ?? !DOMAINS_WITHOUT_STATE_HEADER.includes(domain)
+    );
   }
 
   private _control(stateObj: HassEntity) {
@@ -173,10 +187,7 @@ export class MoreInfoStateCard extends LitElement {
 
   private _header(stateObj: HassEntity) {
     const config = this._config!;
-    const domain = computeDomain(stateObj.entity_id);
-    const showState =
-      config.show_state ?? !DOMAINS_WITHOUT_STATE_HEADER.includes(domain);
-    if (!showState) return nothing;
+    if (!this._showState) return nothing;
     const override =
       config.state_override || autoStateOverride(this.hass!, stateObj);
     if (config.show_last_changed === false) {

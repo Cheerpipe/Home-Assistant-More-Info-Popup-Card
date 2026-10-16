@@ -853,6 +853,25 @@ export const PAGES = [
             ],
           ),
           inPopup(
+            "wrap_mobile",
+            "Wrap on phones",
+            "By default the chips row scrolls sideways on phones, like Home Assistant (the last chip is cut to hint that it scrolls). `wrap: true` puts the chips in rows instead.",
+            "climate.ecobee",
+            [
+              controls(
+                [
+                  { entity: "climate.ecobee", attribute: "hvac_mode" },
+                  { entity: "climate.ecobee", attribute: "preset_mode" },
+                  { entity: "climate.ecobee", attribute: "fan_mode" },
+                  { entity: "climate.ecobee", attribute: "swing_mode" },
+                  { entity: "switch.ac" },
+                ],
+                { wrap: true },
+              ),
+            ],
+            { viewport: "mobile" },
+          ),
+          inPopup(
             "controls_card",
             "Card appearance",
             "`appearance: card` draws a regular card.",

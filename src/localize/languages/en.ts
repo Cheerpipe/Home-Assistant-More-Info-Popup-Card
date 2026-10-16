@@ -146,4 +146,7 @@ export const en = {
   "controls.min": "Minimum",
   "controls.max": "Maximum",
   "controls.step": "Step",
+  "controls.wrap": "Wrap on phones",
+  "controls.wrap_helper":
+    "Chips go to new rows instead of scrolling sideways (Home Assistant scrolls).",
 } as const;

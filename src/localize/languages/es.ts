@@ -149,4 +149,7 @@ export const es: Record<keyof typeof en, string> = {
   "controls.min": "Mínimo",
   "controls.max": "Máximo",
   "controls.step": "Paso",
+  "controls.wrap": "Saltar de línea en móvil",
+  "controls.wrap_helper":
+    "Los chips bajan de línea en lugar de desplazarse de lado (Home Assistant los desplaza).",
 };

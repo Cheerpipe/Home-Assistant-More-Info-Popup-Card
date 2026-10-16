@@ -48,13 +48,14 @@ integration):
 
 ## State card
 
-| Case                                                                 | How  | Evidence                                                                         |
-| -------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------- |
-| Automatic control per domain (same rules as more-info)               | Unit | `controls.test.ts`                                                               |
-| Every control renders (toggle … vacuum status)                       | Shot | [state card page](state-card.md)                                                 |
-| Header text like more-info (brightness, speed, state · position)     | Shot | [brightness](images/state_brightness.png), [position](images/state_position.png) |
-| `state_override`, `show_last_changed`, `show_state`, `control: none` | Shot | [state card page](state-card.md#options)                                         |
-| Interaction: fan speed, vacuum start / return to base                | HA   | entity state changed                                                             |
+| Case                                                                          | How  | Evidence                                                                         |
+| ----------------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------- |
+| Automatic control per domain (same rules as more-info)                        | Unit | `controls.test.ts`                                                               |
+| Every control renders (toggle … vacuum status)                                | Shot | [state card page](state-card.md)                                                 |
+| Header text like more-info (brightness, speed, state · position)              | Shot | [brightness](images/state_brightness.png), [position](images/state_position.png) |
+| `state_override`, `show_last_changed`, `show_state`, `control: none`          | Shot | [state card page](state-card.md#options)                                         |
+| Climate / humidifier / water heater controls appear immediately on first load | HA   | regression fixed: no wait for the state header                                   |
+| Interaction: fan speed, vacuum start / return to base                         | HA   | entity state changed                                                             |
 
 ## Controls card
 
@@ -73,6 +74,7 @@ integration):
 | Action chip `perform-action` / `more-info`                       | Not verified |                                           |
 | Command buttons above the chips                                  | HA, Shot     | [buttons](images/button_row.png)          |
 | Missing / unavailable entity                                     | Shot         | [unavailable](images/unavailable.png)     |
+| `wrap: true` on a phone (rows instead of horizontal scroll)      | HA, Shot     | [wrap](images/wrap_mobile.png)            |
 | Native layout with 2, 4 and 6 chips                              | Shot         | [many](images/many_chips.png)             |
 
 ## UIX

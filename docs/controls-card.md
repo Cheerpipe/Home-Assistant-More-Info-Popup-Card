@@ -26,6 +26,7 @@
   - [Command buttons](#command-buttons)
   - [Missing or unavailable entities](#missing-or-unavailable-entities)
   - [Many chips](#many-chips)
+  - [Wrap on phones](#wrap-on-phones)
   - [Card appearance](#card-appearance)
 
 ## Select chips
@@ -393,6 +394,29 @@ controls:
   - entity: switch.ac
   - entity: number.temperature_setting
     name: Setpoint
+```
+
+### Wrap on phones
+
+By default the chips row scrolls sideways on phones, like Home Assistant (the last chip is cut to hint that it scrolls). `wrap: true` puts the chips in rows instead.
+
+![Wrap on phones](images/wrap_mobile.png)
+
+<sub>Shown inside a popup bound to `climate.ecobee`.</sub>
+
+```yaml
+type: custom:more-info-controls-card
+controls:
+  - entity: climate.ecobee
+    attribute: hvac_mode
+  - entity: climate.ecobee
+    attribute: preset_mode
+  - entity: climate.ecobee
+    attribute: fan_mode
+  - entity: climate.ecobee
+    attribute: swing_mode
+  - entity: switch.ac
+wrap: true
 ```
 
 ### Card appearance
