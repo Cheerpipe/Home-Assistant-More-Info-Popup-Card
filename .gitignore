@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+
+# Build output: dist/more-info-popup-card.js IS committed (HACS installs it
+# from dist/), but the source map is a large local debugging aid.
+dist/*.map
+
+# Local Home Assistant dev instance (npm run dev:ha): only the hand-written
+# configuration is versioned; HA's runtime state (.storage with auth tokens,
+# database, logs, caches) is generated on first start.
+dev/config/*
+!dev/config/configuration.yaml
+
+# Dev credentials written by dev/onboard.mjs
+dev/.credentials.json
+
+# Secrets / environment
+.env
+.env.*
+!.env.example
+secrets.yaml
+
+# Test & tooling caches
+coverage/
+.vitest/
+*.tsbuildinfo
+.eslintcache
+.cache/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editors / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Claude Code local settings
+.claude/settings.local.json

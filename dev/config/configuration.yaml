@@ -1,0 +1,10 @@
+# Development instance: demo entities. The card is registered as a dashboard
+# resource by dev/onboard.mjs (like HACS does), not with extra_module_url:
+# HA loads a scoped custom element registry polyfill and resources loaded
+# before it can end up outside the registry HA looks cards up in.
+default_config:
+
+demo:
+
+logger:
+  default: warning

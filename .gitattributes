@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+# Generated bundle: hide from diffs and language stats
+dist/** linguist-generated=true -diff
+package-lock.json linguist-generated=true -diff
+
+*.png binary
+*.jpg binary

@@ -1,0 +1,42 @@
+{
+  "name": "more-info-popup-card",
+  "version": "0.1.0",
+  "description": "A Home Assistant container card that opens as a native-looking more-info popup with a sections-style grid of cards.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Cheerpipe/Home-Assistant-More-Info-Popup-Card.git"
+  },
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs",
+    "watch": "node build.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "test": "vitest run",
+    "dev:ha": "docker compose -f dev/docker-compose.yml up -d"
+  },
+  "dependencies": {
+    "@mdi/js": "7.4.47",
+    "lit": "3.3.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "esbuild": "0.28.2",
+    "eslint": "10.12.0",
+    "eslint-plugin-lit": "2.3.1",
+    "eslint-plugin-wc": "3.1.0",
+    "globals": "17.13.0",
+    "happy-dom": "21.0.3",
+    "home-assistant-js-websocket": "9.7.1",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.2",
+    "vitest": "5.0.5"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

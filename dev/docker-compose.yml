@@ -1,0 +1,13 @@
+# Local Home Assistant for development: `npm run dev:ha`, then http://localhost:8123
+services:
+  homeassistant:
+    image: ghcr.io/home-assistant/home-assistant:2026.10
+    container_name: more-info-popup-card-ha
+    ports:
+      - "8123:8123"
+    volumes:
+      - ./config:/config
+      - ../dist:/config/www/more-info-popup-card:ro
+    environment:
+      TZ: Europe/Madrid
+    restart: unless-stopped

@@ -1,0 +1,1140 @@
+// Single source of truth for the documentation: every example below is
+// installed in the "Popup docs" dashboard of the dev Home Assistant
+// (`node dev/docs.mjs dashboard`), captured to docs/images/<id>.png and rendered
+// into docs/*.md (`node dev/docs.mjs markdown`). Entities come from HA's `demo`
+// integration.
+
+const POPUP = "custom:more-info-popup-card";
+const STATE = "custom:more-info-state-card";
+const CONTROLS = "custom:more-info-controls-card";
+
+const tile = (entity, extra = {}) => ({ type: "tile", entity, ...extra });
+const heading = (text, extra = {}) => ({
+  type: "heading",
+  heading: text,
+  ...extra,
+});
+const state = (entity, extra = {}) => ({ type: STATE, entity, ...extra });
+const controls = (items, extra = {}) => ({
+  type: CONTROLS,
+  controls: items,
+  ...extra,
+});
+
+/** A popup example. `open` / `setup` describe how the screenshot is taken. */
+const popup = (id, title, text, config, opts = {}) => ({
+  id,
+  title,
+  text,
+  kind: "popup",
+  config: { type: POPUP, popup_id: id, ...config },
+  ...opts,
+});
+
+/** A popup whose body is a single building-block card (for the card pages). */
+const inPopup = (id, title, text, entity, cards, opts = {}) =>
+  popup(
+    id,
+    title,
+    text,
+    { entity, cards },
+    { yaml: cards.length === 1 ? cards[0] : cards, ...opts },
+  );
+
+const vacuum = "vacuum.demo_vacuum_0_ground_floor";
+
+export const PAGES = [
+  // ---------------------------------------------------------------------------
+  {
+    file: "popup-card.md",
+    title: "Popup card",
+    intro:
+      "`custom:more-info-popup-card` is a container: it is invisible on the dashboard and opens as a popup that uses Home Assistant's own more-info dialog. Its body is a sections grid of any cards.",
+    sections: [
+      {
+        title: "Basics",
+        examples: [
+          popup(
+            "basic",
+            "A popup without entity",
+            "Only `popup_id` and `cards` are needed. Open it with a Navigate action to `#basic`.",
+            {
+              name: "Living room",
+              cards: [
+                heading("Lights"),
+                tile("light.ceiling_lights"),
+                tile("light.living_room_rgbww_lights"),
+                tile("light.bed_light"),
+                tile("switch.decorative_lights"),
+              ],
+            },
+          ),
+          popup(
+            "with_entity",
+            "Bound to an entity",
+            "With `entity`, the header shows the native history, settings and ⋮ menu, and the title, breadcrumb and views follow that entity.",
+            {
+              entity: "light.ceiling_lights",
+              cards: [
+                tile("light.ceiling_lights", {
+                  features: [{ type: "light-brightness" }],
+                  grid_options: { columns: 12 },
+                }),
+                tile("light.living_room_rgbww_lights"),
+                tile("light.bed_light"),
+              ],
+            },
+          ),
+          popup(
+            "breadcrumb_text",
+            "Custom title and breadcrumb",
+            "`name` replaces the title and `breadcrumb` the text above it (`auto` = area ▸ device, `none`, or any text).",
+            {
+              name: "Kitchen",
+              breadcrumb: "Ground floor",
+              icon: "mdi:silverware-fork-knife",
+              cards: [
+                tile("light.kitchen_lights"),
+                tile("switch.decorative_lights"),
+              ],
+            },
+          ),
+          popup(
+            "no_header_actions",
+            "Entity without header buttons",
+            "`show_header_actions: false` keeps the entity title but hides history, settings and the menu.",
+            {
+              entity: "climate.ecobee",
+              show_header_actions: false,
+              cards: [
+                tile("climate.ecobee", {
+                  features: [{ type: "target-temperature" }],
+                }),
+                tile("sensor.outside_temperature"),
+              ],
+            },
+          ),
+        ],
+      },
+      {
+        title: "Size",
+        examples: [
+          popup("width_small", "Small", "`width: small` (320 px).", {
+            name: "Small popup",
+            width: "small",
+            cards: [
+              tile("light.bed_light", { grid_options: { columns: 12 } }),
+              tile("switch.decorative_lights", {
+                grid_options: { columns: 12 },
+              }),
+            ],
+          }),
+          popup(
+            "width_large",
+            "Large with a 24-column grid",
+            "`column_span: 2` gives a 24-column grid (two dashboard sections wide) and opens a large dialog.",
+            {
+              name: "Climate",
+              column_span: 2,
+              cards: [
+                tile("climate.hvac", {
+                  features: [{ type: "target-temperature" }],
+                }),
+                tile("climate.ecobee"),
+                {
+                  type: "weather-forecast",
+                  entity: "weather.demo_weather_south",
+                  grid_options: { columns: 12 },
+                },
+                tile("sensor.outside_temperature"),
+                tile("sensor.outside_humidity"),
+              ],
+            },
+          ),
+          popup(
+            "width_custom",
+            "Custom width",
+            "`width: custom` with any CSS length in `custom_width`.",
+            {
+              name: "720 px wide",
+              width: "custom",
+              custom_width: "720px",
+              cards: [
+                tile("light.ceiling_lights"),
+                tile("light.kitchen_lights"),
+                tile("light.bed_light"),
+                tile("light.office_rgbw_lights"),
+              ],
+            },
+          ),
+          popup(
+            "height_custom",
+            "Custom height",
+            "`height: custom` with `min_height` / `max_height` (here both `60vh`). Longer content scrolls inside, with the native scroll fades.",
+            {
+              name: "Fixed height",
+              height: "custom",
+              min_height: "60vh",
+              max_height: "60vh",
+              cards: [
+                heading("Lights"),
+                tile("light.ceiling_lights"),
+                tile("light.kitchen_lights"),
+                tile("light.bed_light"),
+                tile("light.office_rgbw_lights"),
+              ],
+            },
+          ),
+        ],
+      },
+      {
+        title: "Presentation",
+        examples: [
+          popup(
+            "sheet_desktop",
+            "Bottom sheet on desktop",
+            "`mode: bottom_sheet` always slides up from the bottom, with the native drag handle.",
+            {
+              name: "Kitchen",
+              mode: "bottom_sheet",
+              cards: [
+                tile("light.kitchen_lights"),
+                tile("switch.decorative_lights"),
+              ],
+            },
+          ),
+          popup(
+            "auto_mobile",
+            "Automatic on a phone",
+            "`mode: auto` (default) behaves like Home Assistant: dialog on large screens, bottom sheet on phones.",
+            {
+              entity: "light.ceiling_lights",
+              cards: [
+                tile("light.ceiling_lights"),
+                tile("light.bed_light"),
+                tile("climate.ecobee"),
+                tile("sensor.outside_temperature"),
+              ],
+            },
+            { viewport: "mobile" },
+          ),
+          popup(
+            "dialog_mobile",
+            "Dialog forced on a phone",
+            "`mode: dialog` keeps the dialog; like native dialogs it becomes full screen on small phones.",
+            {
+              name: "Dialog",
+              mode: "dialog",
+              cards: [tile("light.ceiling_lights"), tile("light.bed_light")],
+            },
+            { viewport: "mobile" },
+          ),
+        ],
+      },
+      {
+        title: "Entity views",
+        text: "With an entity, the header buttons open the native views inside the popup, with the back arrow, exactly like the more-info dialog.",
+        examples: [
+          popup(
+            "view_history",
+            "History",
+            "Chart button.",
+            {
+              entity: "sensor.outside_temperature",
+              replace_more_info: true,
+              cards: [tile("sensor.outside_temperature")],
+            },
+            { open: { view: "history" } },
+          ),
+          popup(
+            "view_settings",
+            "Settings",
+            "Cog button (admins).",
+            {
+              entity: "light.kitchen_lights",
+              replace_more_info: true,
+              cards: [tile("light.kitchen_lights")],
+            },
+            { open: { view: "settings" } },
+          ),
+          popup(
+            "view_related",
+            "Related",
+            "Menu ▸ Related, or click the breadcrumb.",
+            {
+              entity: "light.office_rgbw_lights",
+              replace_more_info: true,
+              cards: [tile("light.office_rgbw_lights")],
+            },
+            { open: { view: "related" } },
+          ),
+          popup(
+            "view_details",
+            "Details / attributes",
+            "Menu ▸ Details, with the YAML toggle.",
+            {
+              entity: "climate.heatpump",
+              replace_more_info: true,
+              cards: [tile("climate.heatpump")],
+            },
+            { open: { view: "details" } },
+          ),
+          popup(
+            "view_menu",
+            "The ⋮ menu",
+            "Same entries as the native menu, plus **Entity controls** (the native more-info of the entity).",
+            {
+              entity: "light.entrance_color_white_lights",
+              cards: [tile("light.entrance_color_white_lights")],
+            },
+            { setup: "menu" },
+          ),
+          popup(
+            "nested_inline",
+            "Entities opened from inside",
+            "`nested_more_info: inline` (default): a card inside the popup that opens a more-info navigates inside the popup, with the back arrow. Use `dialog` to open a separate dialog instead.",
+            {
+              name: "Lights",
+              cards: [
+                tile("light.living_room_rgbww_lights"),
+                tile("light.bed_light"),
+              ],
+            },
+            { setup: "nested:light.living_room_rgbww_lights" },
+          ),
+        ],
+      },
+      {
+        title: "Opening a popup",
+        text: "A popup is available on the views where its card is placed.",
+        examples: [
+          {
+            id: "trigger_navigate",
+            kind: "text",
+            title: "Navigate action",
+            text: "From any card, badge or button. The hash is consumed, so the browser history keeps a single entry and Back closes the popup.",
+            yaml: tile("light.ceiling_lights", {
+              tap_action: { action: "navigate", navigation_path: "#basic" },
+            }),
+          },
+          {
+            id: "trigger_replace",
+            kind: "text",
+            title: "Replace an entity's more-info",
+            text: "With `replace_more_info: true`, anything on the view that opens the entity's more-info (tiles, the search, history…) opens the popup instead. Requested views (history, settings…) open inside the popup.",
+            yaml: {
+              type: POPUP,
+              popup_id: "living_room",
+              entity: "light.ceiling_lights",
+              replace_more_info: true,
+              cards: [],
+            },
+          },
+          {
+            id: "trigger_dom_event",
+            kind: "text",
+            title: "fire-dom-event",
+            text: "`open`, `close` (optionally with an id) and `toggle`.",
+            yaml: {
+              type: "button",
+              name: "Toggle living room",
+              tap_action: {
+                action: "fire-dom-event",
+                more_info_popup: { toggle: "living_room" },
+              },
+            },
+          },
+          {
+            id: "trigger_link",
+            kind: "text",
+            title: "Links and bookmarks",
+            text: "`/dashboard/view#living_room` opens the popup when the view loads.",
+          },
+        ],
+      },
+      {
+        title: "Behavior",
+        examples: [
+          {
+            id: "behavior_options",
+            kind: "text",
+            title: "Closing and lifecycle",
+            text: "`dismissable: false` ignores Esc, outside clicks and swipes (the ✕ still closes). `auto_close` closes after N seconds without interaction. `keep_alive` keeps the cards loaded while closed for a faster reopen.",
+            yaml: {
+              type: POPUP,
+              popup_id: "doorbell",
+              dismissable: false,
+              auto_close: 30,
+              keep_alive: true,
+              cards: [],
+            },
+          },
+        ],
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  {
+    file: "state-card.md",
+    title: "State card",
+    intro:
+      "`custom:more-info-state-card` renders the top of a native more-info: the state header (state and last changed) and the big native control. `control: auto` picks the same control as Home Assistant; any other value forces one.",
+    sections: [
+      {
+        title: "Controls",
+        examples: [
+          inPopup(
+            "state_toggle",
+            "toggle",
+            "Switches, input booleans, sirens, lights without brightness…",
+            "switch.decorative_lights",
+            [state("switch.decorative_lights")],
+          ),
+          inPopup(
+            "state_brightness",
+            "brightness",
+            "Lights with brightness. The header shows the brightness like more-info.",
+            "light.ceiling_lights",
+            [state("light.ceiling_lights")],
+          ),
+          inPopup(
+            "state_fan_speed",
+            "fan_speed",
+            "Fans with speeds (segments for few speeds, a slider otherwise).",
+            "fan.living_room_fan",
+            [state("fan.living_room_fan")],
+          ),
+          inPopup(
+            "state_position",
+            "position",
+            "Covers with position. Header: state · position.",
+            "cover.hall_window",
+            [state("cover.hall_window")],
+          ),
+          inPopup(
+            "state_tilt",
+            "tilt",
+            "Cover tilt position.",
+            "cover.pergola_roof",
+            [state("cover.pergola_roof", { control: "tilt" })],
+          ),
+          inPopup(
+            "state_cover_buttons",
+            "cover_buttons",
+            "Open / stop / close buttons.",
+            "cover.garage_door",
+            [state("cover.garage_door")],
+          ),
+          inPopup(
+            "state_valve_position",
+            "valve_position",
+            "Valves with position.",
+            "valve.back_garden",
+            [state("valve.back_garden")],
+          ),
+          inPopup(
+            "state_valve_toggle",
+            "valve_toggle",
+            "Valves without position.",
+            "valve.front_garden",
+            [state("valve.front_garden")],
+          ),
+          inPopup("state_lock", "lock", "Lock toggle.", "lock.front_door", [
+            state("lock.front_door"),
+          ]),
+          inPopup(
+            "state_alarm",
+            "alarm_modes",
+            "Alarm panel modes.",
+            "alarm_control_panel.security",
+            [state("alarm_control_panel.security")],
+          ),
+          inPopup(
+            "state_temperature",
+            "temperature",
+            "Thermostat dial. Climate has no state header natively.",
+            "climate.ecobee",
+            [state("climate.ecobee")],
+          ),
+          inPopup(
+            "state_climate_humidity",
+            "climate_humidity",
+            "Target humidity of a climate entity.",
+            "climate.hvac",
+            [state("climate.hvac", { control: "climate_humidity" })],
+          ),
+          inPopup(
+            "state_humidity",
+            "humidity",
+            "Humidifiers.",
+            "humidifier.hygrostat",
+            [state("humidifier.hygrostat")],
+          ),
+          inPopup(
+            "state_water_heater",
+            "water_heater",
+            "Water heaters.",
+            "water_heater.demo_water_heater_celsius",
+            [state("water_heater.demo_water_heater_celsius")],
+          ),
+          inPopup(
+            "state_vacuum",
+            "vacuum_status",
+            "Vacuum illustration (animated while cleaning).",
+            vacuum,
+            [state(vacuum)],
+          ),
+        ],
+      },
+      {
+        title: "Options",
+        examples: [
+          inPopup(
+            "state_override",
+            "Custom state text",
+            "`state_override` replaces the state text.",
+            "light.kitchen_lights",
+            [
+              state("light.kitchen_lights", {
+                state_override: "Cooking light",
+              }),
+            ],
+          ),
+          inPopup(
+            "state_no_time",
+            "Without last changed",
+            "`show_last_changed: false` keeps only the state.",
+            "switch.ac",
+            [state("switch.ac", { show_last_changed: false })],
+          ),
+          inPopup(
+            "state_header_only",
+            "Header only",
+            "`control: none`.",
+            "sensor.outside_temperature",
+            [state("sensor.outside_temperature", { control: "none" })],
+          ),
+          inPopup(
+            "state_force_toggle",
+            "A different control",
+            "Force `toggle` on a dimmable light.",
+            "light.office_rgbw_lights",
+            [state("light.office_rgbw_lights", { control: "toggle" })],
+          ),
+          inPopup(
+            "state_no_header",
+            "Control only",
+            "`show_state: false`.",
+            "light.bed_light",
+            [state("light.bed_light", { show_state: false })],
+          ),
+          inPopup(
+            "state_card",
+            "Card appearance",
+            "`appearance: card` draws a regular card (default `plain` has no frame, like more-info).",
+            "fan.ceiling_fan",
+            [state("fan.ceiling_fan", { appearance: "card" })],
+          ),
+        ],
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  {
+    file: "controls-card.md",
+    title: "Controls card",
+    intro:
+      "`custom:more-info-controls-card` renders the row of chips at the bottom of a native more-info, and the command buttons above it. Item `type` is inferred when omitted: `select` for select entities and attributes, `number` for number entities, `toggle` for toggleable entities, `action` otherwise.",
+    sections: [
+      {
+        title: "Select chips",
+        text: "Native `ha-control-select-menu` chips calling the same service as the native control.",
+        examples: [
+          inPopup(
+            "select_entity",
+            "select / input_select entity",
+            "The state is the selected option.",
+            "select.speed",
+            [controls([{ entity: "select.speed" }])],
+          ),
+          inPopup(
+            "select_open",
+            "The dropdown",
+            "Options with their icons, current one highlighted.",
+            "climate.ecobee",
+            [
+              controls([
+                { entity: "climate.ecobee", attribute: "preset_mode" },
+              ]),
+            ],
+            { setup: "select" },
+          ),
+          inPopup(
+            "select_light",
+            "Light effect",
+            "`attribute: effect` → `light.turn_on`.",
+            "light.bed_light",
+            [controls([{ entity: "light.bed_light", attribute: "effect" }])],
+          ),
+          inPopup(
+            "select_fan",
+            "Fan: preset, direction, oscillation",
+            "`preset_mode`, `direction` and `oscillating` (on / off as a select, like more-info).",
+            "fan.living_room_fan",
+            [
+              controls([
+                { entity: "fan.living_room_fan", attribute: "preset_mode" },
+                { entity: "fan.living_room_fan", attribute: "direction" },
+                { entity: "fan.living_room_fan", attribute: "oscillating" },
+              ]),
+            ],
+          ),
+          inPopup(
+            "select_climate",
+            "Climate modes",
+            "`hvac_mode`, `preset_mode`, `fan_mode`, `swing_mode` (and `swing_horizontal_mode`).",
+            "climate.ecobee",
+            [
+              controls([
+                { entity: "climate.ecobee", attribute: "hvac_mode" },
+                { entity: "climate.ecobee", attribute: "preset_mode" },
+                { entity: "climate.ecobee", attribute: "fan_mode" },
+                { entity: "climate.ecobee", attribute: "swing_mode" },
+              ]),
+            ],
+          ),
+          inPopup(
+            "select_vacuum",
+            "Vacuum fan speed",
+            "`attribute: fan_speed`.",
+            vacuum,
+            [controls([{ entity: vacuum, attribute: "fan_speed" }])],
+          ),
+          inPopup(
+            "select_humidifier",
+            "Humidifier state and mode",
+            "`attribute: state` (on / off) and `mode`.",
+            "humidifier.hygrostat",
+            [
+              controls([
+                { entity: "humidifier.hygrostat", attribute: "state" },
+                { entity: "humidifier.hygrostat", attribute: "mode" },
+              ]),
+            ],
+          ),
+          inPopup(
+            "select_water_heater",
+            "Water heater",
+            "`operation_mode` and `away_mode`.",
+            "water_heater.demo_water_heater",
+            [
+              controls([
+                {
+                  entity: "water_heater.demo_water_heater",
+                  attribute: "operation_mode",
+                },
+                {
+                  entity: "water_heater.demo_water_heater",
+                  attribute: "away_mode",
+                },
+              ]),
+            ],
+          ),
+          inPopup(
+            "select_media",
+            "Media player",
+            "`source` and `sound_mode`.",
+            "media_player.lounge_room",
+            [
+              controls([
+                { entity: "media_player.lounge_room", attribute: "source" },
+                { entity: "media_player.lounge_room", attribute: "sound_mode" },
+              ]),
+            ],
+          ),
+        ],
+      },
+      {
+        title: "Customizing selects",
+        examples: [
+          inPopup(
+            "select_options",
+            "Filter, order, rename and re-icon",
+            "`options` keeps only the listed values in that order; objects rename them and change their icons. `name` and `icon` change the chip.",
+            vacuum,
+            [
+              controls([
+                {
+                  entity: vacuum,
+                  attribute: "fan_speed",
+                  name: "Suction",
+                  icon: "mdi:weather-windy",
+                  options: [
+                    { value: "min", name: "Quiet", icon: "mdi:fan-speed-1" },
+                    {
+                      value: "medium",
+                      name: "Normal",
+                      icon: "mdi:fan-speed-2",
+                    },
+                    { value: "max", name: "Turbo", icon: "mdi:fan-speed-3" },
+                  ],
+                },
+                {
+                  entity: "climate.ecobee",
+                  attribute: "hvac_mode",
+                  name: "Mode",
+                  options: ["off", "heat_cool", "cool"],
+                },
+              ]),
+            ],
+            { setup: "select" },
+          ),
+          inPopup(
+            "select_custom_action",
+            "Your own options and action",
+            "Any list of options sent to any action: `perform_action` + `data_key` (+ `data`).",
+            "light.bed_light",
+            [
+              controls([
+                {
+                  type: "select",
+                  entity: "light.bed_light",
+                  name: "Scene",
+                  icon: "mdi:palette",
+                  options: [
+                    {
+                      value: "orange",
+                      name: "Warm",
+                      icon: "mdi:white-balance-sunny",
+                    },
+                    { value: "white", name: "White", icon: "mdi:lightbulb" },
+                    { value: "blue", name: "Blue", icon: "mdi:weather-night" },
+                  ],
+                  perform_action: "light.turn_on",
+                  data_key: "color_name",
+                },
+              ]),
+            ],
+          ),
+        ],
+      },
+      {
+        title: "Toggle, number, action and button",
+        examples: [
+          inPopup(
+            "toggle_chips",
+            "Toggle chips",
+            "Name, state and an icon colored when active. Locks lock / unlock, covers and valves toggle.",
+            "switch.ac",
+            [
+              controls([
+                { entity: "switch.ac" },
+                { entity: "switch.decorative_lights", name: "Decoration" },
+                { entity: "lock.kitchen_door" },
+                { entity: "light.kitchen_lights", icon: "mdi:ceiling-light" },
+              ]),
+            ],
+          ),
+          inPopup(
+            "number_chips",
+            "Number steppers",
+            "`number` / `input_number` entities with their own min, max, step and unit; override them with `min`, `max`, `step`. Changes are debounced.",
+            "number.volume",
+            [
+              controls([
+                { entity: "number.volume", name: "Volume" },
+                { entity: "number.temperature_setting", name: "Setpoint" },
+                { entity: "number.pwm_1", name: "PWM" },
+                { entity: "number.large_range", name: "Big steps", step: 50 },
+              ]),
+            ],
+          ),
+          inPopup(
+            "action_chips",
+            "Action chips",
+            "Any `tap_action`. The chevron shows for `navigate` and `more-info` (override with `show_arrow`). Navigate to `#other_popup` to chain popups.",
+            vacuum,
+            [
+              controls([
+                {
+                  type: "action",
+                  name: "Cleaning",
+                  value: "By room",
+                  icon: "mdi:texture-box",
+                  tap_action: {
+                    action: "navigate",
+                    navigation_path: "#select_entity",
+                  },
+                },
+                {
+                  type: "action",
+                  entity: "sensor.outside_temperature",
+                  name: "Outside",
+                },
+                {
+                  type: "action",
+                  name: "Locate",
+                  icon: "mdi:map-marker",
+                  tap_action: {
+                    action: "perform-action",
+                    perform_action: "vacuum.locate",
+                    target: { entity_id: vacuum },
+                  },
+                },
+              ]),
+            ],
+          ),
+          inPopup(
+            "button_row",
+            "Command buttons",
+            "`type: button` renders the native square buttons above the chips (like the vacuum more-info). `button`, `scene` and `script` entities work without `perform_action`.",
+            vacuum,
+            [
+              controls([
+                {
+                  type: "button",
+                  entity: vacuum,
+                  name: "Start",
+                  icon: "mdi:play",
+                  perform_action: "vacuum.start",
+                },
+                {
+                  type: "button",
+                  entity: vacuum,
+                  name: "Stop",
+                  icon: "mdi:stop",
+                  perform_action: "vacuum.stop",
+                },
+                {
+                  type: "button",
+                  entity: vacuum,
+                  name: "Dock",
+                  icon: "mdi:home-import-outline",
+                  perform_action: "vacuum.return_to_base",
+                },
+                {
+                  type: "button",
+                  entity: "button.push",
+                  name: "Push",
+                  icon: "mdi:gesture-tap-button",
+                },
+                { entity: vacuum, attribute: "fan_speed" },
+              ]),
+            ],
+          ),
+          inPopup(
+            "unavailable",
+            "Missing or unavailable entities",
+            "Chips of missing or unavailable entities are disabled instead of breaking the card.",
+            "select.speed",
+            [
+              controls([
+                { entity: "select.speed" },
+                { entity: "input_boolean.does_not_exist", name: "Missing" },
+              ]),
+            ],
+          ),
+          inPopup(
+            "many_chips",
+            "Many chips",
+            "The native container lays out four chips as a 2 × 2 grid and more chips in rows of three; on phones the row scrolls horizontally.",
+            "climate.ecobee",
+            [
+              controls([
+                { entity: "climate.ecobee", attribute: "hvac_mode" },
+                { entity: "climate.ecobee", attribute: "preset_mode" },
+                { entity: "climate.ecobee", attribute: "fan_mode" },
+                { entity: "climate.ecobee", attribute: "swing_mode" },
+                { entity: "switch.ac" },
+                { entity: "number.temperature_setting", name: "Setpoint" },
+              ]),
+            ],
+          ),
+          inPopup(
+            "controls_card",
+            "Card appearance",
+            "`appearance: card` draws a regular card.",
+            "fan.living_room_fan",
+            [
+              controls(
+                [
+                  { entity: "fan.living_room_fan", attribute: "preset_mode" },
+                  { entity: "fan.living_room_fan", attribute: "direction" },
+                ],
+                { appearance: "card" },
+              ),
+            ],
+          ),
+        ],
+      },
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  {
+    file: "recipes.md",
+    title: "Recipes: custom more-info popups",
+    intro:
+      "Complete popups that replace the native more-info of an entity (`replace_more_info: true`) with a customized one built from the state and controls cards plus any other card.",
+    sections: [
+      {
+        title: "Recipes",
+        examples: [
+          popup(
+            "recipe_vacuum",
+            "Vacuum",
+            "Status, command buttons, renamed suction levels and a chip that opens a rooms popup.",
+            {
+              entity: vacuum,
+              replace_more_info: true,
+              cards: [
+                state(vacuum),
+                controls([
+                  {
+                    type: "button",
+                    entity: vacuum,
+                    name: "Start",
+                    icon: "mdi:play",
+                    perform_action: "vacuum.start",
+                  },
+                  {
+                    type: "button",
+                    entity: vacuum,
+                    name: "Pause",
+                    icon: "mdi:pause",
+                    perform_action: "vacuum.pause",
+                  },
+                  {
+                    type: "button",
+                    entity: vacuum,
+                    name: "Dock",
+                    icon: "mdi:home-import-outline",
+                    perform_action: "vacuum.return_to_base",
+                  },
+                  {
+                    type: "button",
+                    entity: vacuum,
+                    name: "Locate",
+                    icon: "mdi:map-marker",
+                    perform_action: "vacuum.locate",
+                  },
+                  {
+                    entity: vacuum,
+                    attribute: "fan_speed",
+                    name: "Suction",
+                    options: [
+                      { value: "min", name: "Quiet", icon: "mdi:fan-speed-1" },
+                      {
+                        value: "medium",
+                        name: "Normal",
+                        icon: "mdi:fan-speed-2",
+                      },
+                      { value: "max", name: "Turbo", icon: "mdi:fan-speed-3" },
+                    ],
+                  },
+                  {
+                    type: "action",
+                    name: "Cleaning",
+                    value: "By room",
+                    icon: "mdi:texture-box",
+                    tap_action: {
+                      action: "navigate",
+                      navigation_path: "#recipe_room",
+                    },
+                  },
+                ]),
+              ],
+            },
+          ),
+          popup(
+            "recipe_fan",
+            "Fan",
+            "Speed control, fan options and a related switch.",
+            {
+              entity: "fan.living_room_fan",
+              replace_more_info: true,
+              cards: [
+                state("fan.living_room_fan"),
+                controls([
+                  { entity: "fan.living_room_fan", attribute: "preset_mode" },
+                  { entity: "fan.living_room_fan", attribute: "direction" },
+                  { entity: "fan.living_room_fan", attribute: "oscillating" },
+                  { entity: "switch.ac", name: "Air conditioning" },
+                ]),
+              ],
+            },
+          ),
+          popup(
+            "recipe_thermostat",
+            "Thermostat",
+            "Dial, a reduced set of HVAC modes and the room sensors.",
+            {
+              entity: "climate.ecobee",
+              replace_more_info: true,
+              cards: [
+                state("climate.ecobee"),
+                controls([
+                  {
+                    entity: "climate.ecobee",
+                    attribute: "hvac_mode",
+                    options: ["off", "heat_cool", "cool", "auto"],
+                  },
+                  { entity: "climate.ecobee", attribute: "preset_mode" },
+                  { entity: "climate.ecobee", attribute: "fan_mode" },
+                  { entity: "climate.ecobee", attribute: "swing_mode" },
+                ]),
+                heading("Sensors", { heading_style: "subtitle" }),
+                tile("sensor.outside_temperature"),
+                tile("sensor.outside_humidity"),
+              ],
+            },
+          ),
+          popup(
+            "recipe_light",
+            "Light",
+            "Brightness, effect, and the other lights of the room.",
+            {
+              entity: "light.living_room_rgbww_lights",
+              replace_more_info: true,
+              cards: [
+                state("light.living_room_rgbww_lights"),
+                controls([
+                  {
+                    entity: "light.bed_light",
+                    attribute: "effect",
+                    name: "Bed light effect",
+                  },
+                  { entity: "switch.decorative_lights", name: "Decoration" },
+                ]),
+                heading("Room", { heading_style: "subtitle" }),
+                tile("light.ceiling_lights"),
+                tile("light.bed_light"),
+              ],
+            },
+          ),
+          popup(
+            "recipe_cover",
+            "Cover",
+            "Position plus tilt as a second state card and favorite positions as buttons.",
+            {
+              entity: "cover.living_room_window",
+              replace_more_info: true,
+              cards: [
+                state("cover.living_room_window"),
+                controls([
+                  {
+                    type: "button",
+                    entity: "cover.living_room_window",
+                    name: "Open",
+                    icon: "mdi:arrow-up",
+                    perform_action: "cover.open_cover",
+                  },
+                  {
+                    type: "button",
+                    entity: "cover.living_room_window",
+                    name: "Stop",
+                    icon: "mdi:stop",
+                    perform_action: "cover.stop_cover",
+                  },
+                  {
+                    type: "button",
+                    entity: "cover.living_room_window",
+                    name: "Close",
+                    icon: "mdi:arrow-down",
+                    perform_action: "cover.close_cover",
+                  },
+                  {
+                    type: "action",
+                    name: "Half",
+                    icon: "mdi:window-shutter-open",
+                    tap_action: {
+                      action: "perform-action",
+                      perform_action: "cover.set_cover_position",
+                      target: { entity_id: "cover.living_room_window" },
+                      data: { position: 50 },
+                    },
+                  },
+                ]),
+              ],
+            },
+          ),
+          popup(
+            "recipe_water_heater",
+            "Water heater",
+            "Temperature, operation mode and away mode.",
+            {
+              entity: "water_heater.demo_water_heater",
+              replace_more_info: true,
+              cards: [
+                state("water_heater.demo_water_heater"),
+                controls([
+                  {
+                    entity: "water_heater.demo_water_heater",
+                    attribute: "operation_mode",
+                  },
+                  {
+                    entity: "water_heater.demo_water_heater",
+                    attribute: "away_mode",
+                  },
+                ]),
+              ],
+            },
+          ),
+          popup(
+            "recipe_security",
+            "Security",
+            "Alarm panel and locks in one popup.",
+            {
+              entity: "alarm_control_panel.security",
+              replace_more_info: true,
+              cards: [
+                state("alarm_control_panel.security"),
+                controls([
+                  { entity: "lock.front_door" },
+                  { entity: "lock.kitchen_door" },
+                  { entity: "lock.openable_lock" },
+                ]),
+              ],
+            },
+          ),
+          popup(
+            "recipe_room",
+            "A room",
+            "A popup without entity mixing building blocks and regular cards, wide on desktop.",
+            {
+              name: "Living room",
+              breadcrumb: "Ground floor",
+              column_span: 2,
+              cards: [
+                heading("Climate"),
+                { ...state("climate.ecobee"), grid_options: { columns: 12 } },
+                {
+                  ...controls([
+                    { entity: "climate.ecobee", attribute: "hvac_mode" },
+                    { entity: "climate.ecobee", attribute: "preset_mode" },
+                  ]),
+                  grid_options: { columns: 12 },
+                },
+                heading("Lights"),
+                tile("light.ceiling_lights", {
+                  features: [{ type: "light-brightness" }],
+                }),
+                tile("light.living_room_rgbww_lights", {
+                  features: [{ type: "light-brightness" }],
+                }),
+                heading("Media"),
+                {
+                  type: "media-control",
+                  entity: "media_player.living_room",
+                  grid_options: { columns: 24 },
+                },
+              ],
+            },
+          ),
+        ],
+      },
+    ],
+  },
+];
