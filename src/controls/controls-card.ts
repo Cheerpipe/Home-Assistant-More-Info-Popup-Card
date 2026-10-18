@@ -8,7 +8,9 @@ import { mdiChevronRight, mdiMinus, mdiPlus } from "@mdi/js";
 import { css, html, LitElement, nothing, type TemplateResult } from "lit";
 import { property, state } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
+import { styleMap } from "lit/directives/style-map.js";
 import { computeDomain, computeStateName } from "../ha/entity";
+import { computeCssColor } from "../ha/color";
 import { fireEvent } from "../ha/fire-event";
 import type {
   ActionConfig,
@@ -205,26 +207,34 @@ export class MoreInfoControlsCard extends LitElement {
     return computeStateName(stateObj);
   }
 
+  /** `colored: false` keeps the default color (an inactive toggle). */
   private _icon(
     item: ControlItemConfig,
     stateObj: HassEntity | undefined,
     path: string | undefined,
     slot?: string,
+    colored = true,
   ): TemplateResult {
+    const style = styleMap({
+      color: item.color && colored ? computeCssColor(item.color) : undefined,
+    });
     if (item.icon) {
       return html`<ha-icon
         slot=${slot ?? nothing}
+        style=${style}
         .icon=${item.icon}
       ></ha-icon>`;
     }
     if (path) {
       return html`<ha-svg-icon
         slot=${slot ?? nothing}
+        style=${style}
         .path=${path}
       ></ha-svg-icon>`;
     }
     return html`<ha-state-icon
       slot=${slot ?? nothing}
+      style=${style}
       .hass=${this.hass}
       .stateObj=${stateObj}
     ></ha-state-icon>`;
@@ -330,7 +340,9 @@ export class MoreInfoControlsCard extends LitElement {
         ?disabled=${unavailable}
         @click=${toggle}
       >
-        <div class="icon">${this._icon(item, stateObj, undefined)}</div>
+        <div class="icon">
+          ${this._icon(item, stateObj, undefined, undefined, active)}
+        </div>
         <div class="content">
           <p class="label">${this._label(item, stateObj)}</p>
           <p class="value">${this.hass!.formatEntityState(stateObj)}</p>

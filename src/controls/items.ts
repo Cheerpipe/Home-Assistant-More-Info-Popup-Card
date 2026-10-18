@@ -21,6 +21,8 @@ export interface ControlItemConfig {
   attribute?: string;
   name?: string;
   icon?: string;
+  /** Icon color (`ui_color` or CSS); for a toggle, only while it is on. */
+  color?: string;
   /** For `select`: filter / order / rename / re-icon options. */
   options?: (string | ControlOption)[];
   /** Override the service of a `select` or `number`: "domain.service". */

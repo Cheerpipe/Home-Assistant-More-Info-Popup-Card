@@ -12,25 +12,26 @@ integration):
 
 ## Popup card
 
-| Case                                                         | How            | Evidence                                                                                              |
-| ------------------------------------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------- |
-| Opens with a Navigate action to `#id` (push)                 | Unit, HA       | `registry.test.ts`, history keeps one entry                                                           |
-| Opens with `navigation_replace` and with a deep link         | Unit, HA       | `registry.test.ts`                                                                                    |
-| Ignores unknown hashes and hashes of other pages             | Unit           | `registry.test.ts`                                                                                    |
-| Back button, Esc and ✕ close it; history stays clean         | HA             | `history.state` checked after each close                                                              |
-| `fire-dom-event` open / toggle / close                       | Unit, HA       | `registry.test.ts`                                                                                    |
-| `replace_more_info` (including requested views)              | Unit, HA, Shot | [history](images/view_history.png), [settings](images/view_settings.png)                              |
-| Events from inside a popup are not intercepted               | Unit           | `registry.test.ts`                                                                                    |
-| Header identical to the native more-info                     | HA             | compared side by side with the native dialog                                                          |
-| Entity views: history, settings, related, details, menu      | HA, Shot       | [related](images/view_related.png), [details](images/view_details.png), [menu](images/view_menu.png)  |
-| Nested more-info inline with back arrow                      | HA, Shot       | [nested](images/nested_inline.png)                                                                    |
-| Widths small / medium / large / full / custom                | Shot           | [small](images/width_small.png), [large](images/width_large.png), [custom](images/width_custom.png)   |
-| Custom height                                                | Shot           | [height](images/height_custom.png)                                                                    |
-| `mode: bottom_sheet`, `auto` on a phone, `dialog` on a phone | HA, Shot       | [sheet](images/sheet_desktop.png), [auto](images/auto_mobile.png), [dialog](images/dialog_mobile.png) |
-| Hidden on the dashboard, placeholder in edit mode            | HA, Shot       | [placeholders](images/editor_placeholders.png)                                                        |
-| Card registered after the HA registry polyfill               | HA             | must be loaded as a dashboard resource (see README)                                                   |
-| `dismissable: false`, `auto_close`, `keep_alive`             | Not verified   |                                                                                                       |
-| Config validation errors                                     | Unit           | `config.test.ts`                                                                                      |
+| Case                                                                                                                     | How            | Evidence                                                                                              |
+| ------------------------------------------------------------------------------------------------------------------------ | -------------- | ----------------------------------------------------------------------------------------------------- |
+| Opens with a Navigate action to `#id` (push)                                                                             | Unit, HA       | `registry.test.ts`, history keeps one entry                                                           |
+| Opens with `navigation_replace` and with a deep link                                                                     | Unit, HA       | `registry.test.ts`                                                                                    |
+| Ignores unknown hashes and hashes of other pages                                                                         | Unit           | `registry.test.ts`                                                                                    |
+| Back button, Esc and ✕ close it; history stays clean                                                                     | HA             | `history.state` checked after each close                                                              |
+| `fire-dom-event` open / toggle / close                                                                                   | Unit, HA       | `registry.test.ts`                                                                                    |
+| `replace_more_info` (including requested views)                                                                          | Unit, HA, Shot | [history](images/view_history.png), [settings](images/view_settings.png)                              |
+| Events from inside a popup are not intercepted                                                                           | Unit           | `registry.test.ts`                                                                                    |
+| Header identical to the native more-info                                                                                 | HA             | compared side by side with the native dialog                                                          |
+| Entity views: history, settings, related, details, menu                                                                  | HA, Shot       | [related](images/view_related.png), [details](images/view_details.png), [menu](images/view_menu.png)  |
+| Nested more-info inline with back arrow                                                                                  | HA, Shot       | [nested](images/nested_inline.png)                                                                    |
+| Widths small / medium / large / full / custom                                                                            | Shot           | [small](images/width_small.png), [large](images/width_large.png), [custom](images/width_custom.png)   |
+| Custom height                                                                                                            | Shot           | [height](images/height_custom.png)                                                                    |
+| `mode: bottom_sheet`, `auto` on a phone, `dialog` on a phone                                                             | HA, Shot       | [sheet](images/sheet_desktop.png), [auto](images/auto_mobile.png), [dialog](images/dialog_mobile.png) |
+| `mode: top_sheet`: drops from the top, handle at the bottom, swipe up to close; a later bottom sheet stays at the bottom | HA             | dev instance, touch gesture simulated                                                                 |
+| Hidden on the dashboard, placeholder in edit mode                                                                        | HA, Shot       | [placeholders](images/editor_placeholders.png)                                                        |
+| Card registered after the HA registry polyfill                                                                           | HA             | must be loaded as a dashboard resource (see README)                                                   |
+| `dismissable: false`, `auto_close`, `keep_alive`                                                                         | Not verified   |                                                                                                       |
+| Config validation errors                                                                                                 | Unit           | `config.test.ts`                                                                                      |
 
 ## Editor
 
@@ -59,6 +60,7 @@ integration):
 | Light: lightbulb toggle, button bar, color / color temp pickers, favorite colors                                            | HA           | compared side by side with the native dialog                                                                                        |
 | `more_info` control: camera, conversation, date, datetime, number, person, remote, select, sun, text, time, update, weather | HA           | rendered in the dev instance; sun compared with the native dialog                                                                   |
 | `trigger` control: script (run, running, cancel, required fields), button, automation (trigger, on/off)                     | HA           | `dev/config/configuration.yaml` test entities; check / error feedback and states read from the DOM                                  |
+| `push` control (vertical, horizontal, square, circle), `icon` / `icon_off`, `color` / `color_off`                           | HA           | dev instance: shapes, lit while running, toggle icons and colors read from the DOM                                                  |
 | Cover / valve: position + tilt side by side, mode switch, buttons, toggle, favorite positions                               | HA           | every demo cover and valve, element positions equal to the native dialog (desktop and phone width), also after switching to buttons |
 | Lock: Open button (confirm → done), jammed status with Unlock / Lock                                                        | HA           | positions equal to the native dialog; `lock.openable_lock` opened, `lock.poorly_installed_door` jammed then unlocked                |
 | Alarm: pulsing status and Disarm while arming / triggered, native code dialog                                               | HA           | positions equal to the native dialog; disarmed with the demo code                                                                   |

@@ -74,23 +74,23 @@ cards:
 
 More examples for every option: [docs/popup-card.md](docs/popup-card.md).
 
-| Option                | Default  | Description                                                                              |
-| --------------------- | -------- | ---------------------------------------------------------------------------------------- |
-| `popup_id`            | required | Lowercase letters, digits, `_` and `-`. Used as `#popup_id`.                             |
-| `entity`              |          | Enables history, settings and the ⋮ menu (device info, related, details, add to…).       |
-| `name`                | entity   | Title of the popup.                                                                      |
-| `icon`                |          | Icon of the placeholder shown in edit mode.                                              |
-| `breadcrumb`          | `auto`   | Text above the title: `auto` (area ▸ device), `none` or any text.                        |
-| `mode`                | `auto`   | `auto` (dialog on desktop, bottom sheet on mobile, like HA), `dialog` or `bottom_sheet`. |
-| `width`               | `medium` | `small`, `medium`, `large`, `full` or `custom` (+ `custom_width`, e.g. `720px`).         |
-| `height`              | `auto`   | `auto` or `custom` (+ `min_height` / `max_height`, e.g. `60vh`).                         |
-| `column_span`         | `1`      | Grid width in sections: `1` = 12 columns, `2` = 24 columns (opens a large dialog).       |
-| `show_header_actions` | `true`   | Show history, settings and menu when an entity is set.                                   |
-| `replace_more_info`   | `false`  | Show this popup instead of the entity's native more-info on this view.                   |
-| `nested_more_info`    | `inline` | Entities opened from inside the popup: `inline` (navigate inside, like HA) or `dialog`.  |
-| `dismissable`         | `true`   | Close with Esc, clicking outside or swiping down.                                        |
-| `auto_close`          | `0`      | Seconds of inactivity before closing (`0` = never).                                      |
-| `keep_alive`          | `false`  | Keep the cards loaded while closed for a faster reopen.                                  |
+| Option                | Default  | Description                                                                                                                                   |
+| --------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `popup_id`            | required | Lowercase letters, digits, `_` and `-`. Used as `#popup_id`.                                                                                  |
+| `entity`              |          | Enables history, settings and the ⋮ menu (device info, related, details, add to…).                                                            |
+| `name`                | entity   | Title of the popup.                                                                                                                           |
+| `icon`                |          | Icon of the placeholder shown in edit mode.                                                                                                   |
+| `breadcrumb`          | `auto`   | Text above the title: `auto` (area ▸ device), `none` or any text.                                                                             |
+| `mode`                | `auto`   | `auto` (dialog on desktop, bottom sheet on mobile, like HA), `dialog`, `bottom_sheet` or `top_sheet` (drops from the top; swipe up to close). |
+| `width`               | `medium` | `small`, `medium`, `large`, `full` or `custom` (+ `custom_width`, e.g. `720px`).                                                              |
+| `height`              | `auto`   | `auto` or `custom` (+ `min_height` / `max_height`, e.g. `60vh`).                                                                              |
+| `column_span`         | `1`      | Grid width in sections: `1` = 12 columns, `2` = 24 columns (opens a large dialog).                                                            |
+| `show_header_actions` | `true`   | Show history, settings and menu when an entity is set.                                                                                        |
+| `replace_more_info`   | `false`  | Show this popup instead of the entity's native more-info on this view.                                                                        |
+| `nested_more_info`    | `inline` | Entities opened from inside the popup: `inline` (navigate inside, like HA) or `dialog`.                                                       |
+| `dismissable`         | `true`   | Close with Esc, clicking outside or swiping down.                                                                                             |
+| `auto_close`          | `0`      | Seconds of inactivity before closing (`0` = never).                                                                                           |
+| `keep_alive`          | `false`  | Keep the cards loaded while closed for a faster reopen.                                                                                       |
 
 ### Notes
 
@@ -112,10 +112,15 @@ Every control with a screenshot: [docs/state-card.md](docs/state-card.md).
 ```yaml
 type: custom:more-info-state-card
 entity: fan.living_room
-control: auto # auto | none | toggle | brightness | fan_speed | position | tilt | cover_toggle | cover_buttons | valve_position | valve_toggle | valve_buttons | lock | alarm_modes | temperature | climate_humidity | humidity | water_heater | vacuum_status | lawn_mower_status
+control: auto # auto | none | toggle | brightness | fan_speed | position | tilt | cover_toggle | cover_buttons | valve_position | valve_toggle | valve_buttons | lock | alarm_modes | temperature | climate_humidity | humidity | water_heater | vacuum_status | lawn_mower_status | media_player | more_info | script | press | trigger | push
 show_state: true # default: like more-info (climate, humidifier and water heater have none)
 show_last_changed: true
 state_override: "" # replaces the state text
+icon: mdi:string-lights # replaces the entity icon (toggle "on" icon, trigger, push)
+icon_off: mdi:string-lights-off # toggle "off" icon
+color: purple # active color of the control: theme color name or any CSS color
+color_off: "#9e9e9e" # inactive color
+button_layout: vertical # push only: vertical | horizontal | square | circle
 appearance: plain # plain (like more-info) | card
 ```
 
@@ -159,6 +164,7 @@ controls:
       - { value: min, name: Quiet, icon: mdi:fan-speed-1 }
       - { value: max, name: Turbo, icon: mdi:fan-speed-3 }
   - entity: switch.child_lock
+    color: red # icon color (toggles: only while on)
   - entity: number.volume
   - type: action
     name: Cleaning

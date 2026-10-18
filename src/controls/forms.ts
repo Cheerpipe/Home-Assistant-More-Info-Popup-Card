@@ -50,9 +50,29 @@ export const stateCardForm = () => ({
       ],
     },
     { name: "state_override", selector: { text: {} } },
+    {
+      name: "",
+      type: "grid",
+      schema: [
+        { name: "icon", selector: { icon: {} } },
+        { name: "icon_off", selector: { icon: {} } },
+        { name: "color", selector: { ui_color: {} } },
+        { name: "color_off", selector: { ui_color: {} } },
+      ],
+    },
+    {
+      name: "button_layout",
+      selector: select(
+        ["vertical", "horizontal", "square", "circle"],
+        "controls.button_layout",
+      ),
+    },
     APPEARANCE,
   ],
   computeLabel,
+  computeHelper: (schema: { name: string }) =>
+    localize(lang(), `controls.${schema.name}_helper` as TranslationKey) ||
+    undefined,
 });
 
 const field = (key: string, selector: unknown, required = false) => ({
@@ -91,6 +111,7 @@ export const controlsCardForm = () => ({
             ),
             name: field("name", { text: {} }),
             icon: field("icon", { icon: {} }),
+            color: field("color", { ui_color: {} }),
             options: field("options", {
               select: { multiple: true, custom_value: true, options: [] },
             }),

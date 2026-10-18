@@ -49,6 +49,9 @@ describe("resolveConfig", () => {
   it("applies defaults without overriding user values", () => {
     const resolved = resolveConfig({ ...base, mode: "bottom_sheet" });
     expect(resolved.mode).toBe("bottom_sheet");
+    expect(resolveConfig({ ...base, mode: "top_sheet" }).mode).toBe(
+      "top_sheet",
+    );
     expect(resolved.width).toBe("medium");
     expect(resolved.dismissable).toBe(true);
     expect(resolved.nested_more_info).toBe("inline");

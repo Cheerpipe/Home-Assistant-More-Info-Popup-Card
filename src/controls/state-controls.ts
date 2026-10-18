@@ -143,6 +143,13 @@ export const STATE_CONTROLS = {
     extraTags: ["ha-control-button", "ha-markdown", "ha-service-control"],
     inline: true,
   },
+  /** Same, as one big stateless push button (`variant: "button"`). */
+  push: {
+    tag: "ha-control-button-group",
+    load: "script",
+    extraTags: ["ha-control-button", "ha-markdown", "ha-service-control"],
+    inline: true,
+  },
 } as const satisfies Record<string, StateControlSpec>;
 
 export type StateControlName = keyof typeof STATE_CONTROLS;

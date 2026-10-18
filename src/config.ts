@@ -5,7 +5,7 @@ export const CARD_TAG = "more-info-popup-card";
 export const DIALOG_TAG = "more-info-popup-dialog";
 export const EDITOR_TAG = "more-info-popup-card-editor";
 
-export type PopupMode = "auto" | "dialog" | "bottom_sheet";
+export type PopupMode = "auto" | "dialog" | "bottom_sheet" | "top_sheet";
 export type PopupWidth = "small" | "medium" | "large" | "full" | "custom";
 export type PopupHeight = "auto" | "custom";
 export type NestedMoreInfo = "inline" | "dialog";
@@ -67,7 +67,7 @@ export const DEFAULTS = {
   keep_alive: false,
 } as const satisfies Partial<PopupCardConfig>;
 
-const MODES: PopupMode[] = ["auto", "dialog", "bottom_sheet"];
+const MODES: PopupMode[] = ["auto", "dialog", "bottom_sheet", "top_sheet"];
 const WIDTHS: PopupWidth[] = ["small", "medium", "large", "full", "custom"];
 const HEIGHTS: PopupHeight[] = ["auto", "custom"];
 const NESTED: NestedMoreInfo[] = ["inline", "dialog"];

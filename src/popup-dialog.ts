@@ -64,6 +64,11 @@ import { computeHeaderInfo, renderTitle, type Frame } from "./popup-header";
 import { setActivePopup } from "./state";
 import { POPUP_FILL_EVENT } from "./controls/state-card";
 import { applyUix, uixConfigOf } from "./ha/uix";
+import {
+  prepareTopSheet,
+  shieldSheetTouches,
+  startTopSheetSwipe,
+} from "./top-sheet";
 
 export interface PopupDialogParams {
   config: ResolvedPopupConfig;
@@ -264,9 +269,44 @@ export class MoreInfoPopupDialog extends LitElement {
       this._updateScrollState();
     }
     this._applyUix();
+    this._prepareTopSheet();
   }
 
   private _observedContent?: HTMLElement;
+
+  // ---------------------------------------------------------------------------
+  // Top sheet (`top-sheet.ts`)
+  // ---------------------------------------------------------------------------
+
+  /** The drawer is placed at the top before the sheet first opens. */
+  @state() accessor _topSheetReady = false;
+
+  private _topSheet?: Element;
+
+  private async _prepareTopSheet() {
+    if (this._config?.mode !== "top_sheet") return;
+    const sheet = this.renderRoot.querySelector("ha-bottom-sheet");
+    if (!sheet || sheet === this._topSheet) return;
+    this._topSheet = sheet;
+    this._topSheetReady = false;
+    // Its own drag gesture (swipe down to close) must not start on our nodes.
+    sheet.querySelectorAll(":scope > *").forEach((node) => {
+      node.addEventListener("touchstart", shieldSheetTouches as EventListener);
+    });
+    this._topSheetReady = await prepareTopSheet(
+      sheet as unknown as Parameters<typeof prepareTopSheet>[0],
+    );
+  }
+
+  private _topSwipe = (ev: TouchEvent) => {
+    const sheet = this.renderRoot.querySelector("ha-bottom-sheet");
+    if (!sheet) return;
+    startTopSheetSwipe(
+      ev,
+      sheet as unknown as Parameters<typeof startTopSheetSwipe>[1],
+      () => this.closeDialog(),
+    );
+  };
 
   private _uixKey?: string;
 
@@ -551,25 +591,44 @@ export class MoreInfoPopupDialog extends LitElement {
     const style = styleMap(sizeStyles(config));
     const content = this._renderContent(frame);
 
-    if (config.mode === "bottom_sheet") {
-      return html`
-        <ha-bottom-sheet
-          style=${style}
-          .open=${this._open}
-          .preventScrimClose=${preventScrimClose}
-          flexcontent
-          @opened=${this._dialogOpened}
-          @closed=${this._dialogClosed}
-          @show-child-view=${this._showChildView}
-        >
-          <ha-dialog-header slot="header">
-            ${this._renderNavigation(frame, "navigationIcon")}
-            ${this._renderTitle(config, frame, "title")}
-            ${this._renderActions(config, frame, "actionItems")}
-          </ha-dialog-header>
-          ${content}
-        </ha-bottom-sheet>
-      `;
+    if (config.mode === "bottom_sheet" || config.mode === "top_sheet") {
+      const top = config.mode === "top_sheet";
+      // One sheet per mode: a reused one would keep its drawer at the top.
+      return keyed(
+        config.mode,
+        html`
+          <ha-bottom-sheet
+            class=${classMap({ top })}
+            style=${style}
+            .open=${this._open && (!top || this._topSheetReady)}
+            .preventScrimClose=${preventScrimClose}
+            flexcontent
+            @opened=${this._dialogOpened}
+            @closed=${this._dialogClosed}
+            @show-child-view=${this._showChildView}
+          >
+            <ha-dialog-header
+              slot="header"
+              @touchstart=${top ? this._topSwipe : nothing}
+            >
+              ${this._renderNavigation(frame, "navigationIcon")}
+              ${this._renderTitle(config, frame, "title")}
+              ${this._renderActions(config, frame, "actionItems")}
+            </ha-dialog-header>
+            ${content}
+            ${
+              top
+                ? html`<div
+                    slot="footer"
+                    class="top-sheet-handle"
+                    aria-hidden="true"
+                    @touchstart=${this._topSwipe}
+                  ></div>`
+                : nothing
+            }
+          </ha-bottom-sheet>
+        `,
+      );
     }
 
     const tag = config.mode === "dialog" ? "ha-dialog" : "ha-adaptive-dialog";
@@ -646,7 +705,9 @@ export class MoreInfoPopupDialog extends LitElement {
       this.hass,
       info,
       slot,
-      config.mode === "bottom_sheet" ? undefined : this._enlarge,
+      config.mode === "bottom_sheet" || config.mode === "top_sheet"
+        ? undefined
+        : this._enlarge,
       this._breadcrumbClick,
     );
   }
@@ -977,6 +1038,27 @@ export class MoreInfoPopupDialog extends LitElement {
       }
       [hidden] {
         display: none !important;
+      }
+      /* top-sheet.ts: the safe area moves to the top edge. */
+      ha-bottom-sheet.top {
+        --ha-bottom-sheet-padding: var(--safe-area-inset-top)
+          var(--safe-area-inset-right) 0 var(--safe-area-inset-left);
+        --ha-bottom-sheet-content-padding: 0;
+      }
+      /* The drag handle of ha-bottom-sheet, at the bottom edge. */
+      .top-sheet-handle {
+        display: flex;
+        justify-content: center;
+        padding: var(--ha-space-2) 0 var(--ha-space-3);
+        cursor: grab;
+        touch-action: none;
+      }
+      .top-sheet-handle::after {
+        content: "";
+        width: 40px;
+        height: 4px;
+        border-radius: var(--ha-border-radius-md);
+        background: var(--ha-bottom-sheet-handle-color, var(--divider-color));
       }
     `,
   ];

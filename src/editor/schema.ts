@@ -52,7 +52,12 @@ export const buildSchema = (
         selector: {
           select: {
             mode: "dropdown",
-            options: options(hass, "mode", ["auto", "dialog", "bottom_sheet"]),
+            options: options(hass, "mode", [
+              "auto",
+              "dialog",
+              "bottom_sheet",
+              "top_sheet",
+            ]),
           },
         },
       },

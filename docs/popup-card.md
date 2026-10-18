@@ -227,7 +227,7 @@ cards:
 
 ### Bottom sheet on desktop
 
-`mode: bottom_sheet` always slides up from the bottom, with the native drag handle.
+`mode: bottom_sheet` always slides up from the bottom, with the native drag handle. `mode: top_sheet` is the same sheet dropping from the top like a marquee, with the handle at the bottom: swipe up to close.
 
 ![Bottom sheet on desktop](images/sheet_desktop.png)
 

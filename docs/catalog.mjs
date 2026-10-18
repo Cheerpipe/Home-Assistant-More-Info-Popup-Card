@@ -193,7 +193,7 @@ export const PAGES = [
           popup(
             "sheet_desktop",
             "Bottom sheet on desktop",
-            "`mode: bottom_sheet` always slides up from the bottom, with the native drag handle.",
+            "`mode: bottom_sheet` always slides up from the bottom, with the native drag handle. `mode: top_sheet` is the same sheet dropping from the top like a marquee, with the handle at the bottom: swipe up to close.",
             {
               name: "Kitchen",
               mode: "bottom_sheet",
@@ -383,7 +383,7 @@ export const PAGES = [
     sections: [
       {
         title: "Controls",
-        text: "Lights get the whole native light control: the brightness slider, the button bar (power, brightness, color, color temperature, white) and the favorite colors; on/off lights get the lightbulb toggle. Entities whose more-info is a view of its own (camera, conversation, counter, date, datetime, group, image, input_datetime, person, remote, sun, time, timer, update, weather) and those whose more-info is only the state row (number, select, text, scene and the `input_*` helpers) use `control: more_info`: the native more-info content itself, under the native state row where more-info shows one. The state header is then hidden by default (`show_state: true` adds it back). On a full-height sheet, the control sits in the free height like in more-info. Scripts, buttons and automations, which more-info only gives plain buttons, get `control: trigger`: a momentary switch with the shape, size and colors of the toggle. Tapping it sends the handle up in the state color, confirms with a check (or an error) and drops it back; a running script keeps it up and breathing, with Cancel below. Automations run their actions (conditions skipped, like more-info) and get an on/off button below; scripts with fields show the native fields form, and the switch waits for the required ones. The header says when it last ran or was pressed. `control: script` and `control: press` keep the plain native buttons.",
+        text: "Lights get the whole native light control: the brightness slider, the button bar (power, brightness, color, color temperature, white) and the favorite colors; on/off lights get the lightbulb toggle. Entities whose more-info is a view of its own (camera, conversation, counter, date, datetime, group, image, input_datetime, person, remote, sun, time, timer, update, weather) and those whose more-info is only the state row (number, select, text, scene and the `input_*` helpers) use `control: more_info`: the native more-info content itself, under the native state row where more-info shows one. The state header is then hidden by default (`show_state: true` adds it back). On a full-height sheet, the control sits in the free height like in more-info. Scripts, buttons and automations, which more-info only gives plain buttons, get `control: trigger`: a momentary switch with the shape, size and colors of the toggle. Tapping it sends the handle up in the state color, confirms with a check (or an error) and drops it back; a running script keeps it up and breathing, with Cancel below. Automations run their actions (conditions skipped, like more-info) and get an on/off button below; scripts with fields show the native fields form, and the switch waits for the required ones. The header says when it last ran or was pressed. `control: script` and `control: press` keep the plain native buttons. `control: push` is the same action as one big stateless push button, lit only while the action happens (the press, a running script); `button_layout` shapes it: `vertical` (like the toggle, default), `horizontal`, `square` or `circle`. `icon` (and `icon_off` for the toggle) replace the entity icon of the toggle, trigger and push controls; `color` and `color_off` recolor the native control through the state color variables it reads, so they reach every control that uses the state color.",
         examples: [
           inPopup(
             "state_toggle",
@@ -731,7 +731,7 @@ export const PAGES = [
           inPopup(
             "toggle_chips",
             "Toggle chips",
-            "Name, state and an icon colored when active. Locks lock / unlock, covers and valves toggle.",
+            "Name, state and an icon colored when active. Locks lock / unlock, covers and valves toggle. Any item takes `color` (a theme color name or any CSS color) for its icon; on a toggle it is the color while on.",
             "switch.ac",
             [
               controls([

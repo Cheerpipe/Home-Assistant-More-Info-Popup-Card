@@ -252,7 +252,7 @@ controls:
 
 ### Toggle chips
 
-Name, state and an icon colored when active. Locks lock / unlock, covers and valves toggle.
+Name, state and an icon colored when active. Locks lock / unlock, covers and valves toggle. Any item takes `color` (a theme color name or any CSS color) for its icon; on a toggle it is the color while on.
 
 ![Toggle chips](images/toggle_chips.png)
 

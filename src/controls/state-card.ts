@@ -40,6 +40,9 @@ import type {
 import { fireEvent } from "../ha/fire-event";
 import { runNativeMethod } from "../ha/internals";
 import { ensureMoreInfoElements } from "./loader";
+import type { PushLayout } from "./trigger-control";
+import { stateColorVars } from "../ha/color";
+import { resolveIconPath } from "../ha/icons";
 import "./trigger-control";
 import {
   ALARM_DISARM_STATES,
@@ -98,6 +101,17 @@ export interface StateCardConfig extends LovelaceCardConfig {
   /** Replaces the state text of the header. */
   state_override?: string;
   appearance?: CardAppearance;
+  /** Shape of `control: push`. */
+  button_layout?: PushLayout;
+  /**
+   * Replaces the entity icon of the control (toggle, trigger, push); for the
+   * toggle it is the "on" icon and `icon_off` the "off" one.
+   */
+  icon?: string;
+  icon_off?: string;
+  /** Active / inactive color of the native control (`ui_color` or CSS). */
+  color?: string;
+  color_off?: string;
 }
 
 const CONTROL_ATTRIBUTES: Partial<Record<StateControlName, string[]>> = {
@@ -263,6 +277,23 @@ export class MoreInfoStateCard extends LitElement {
     this._setOpenState("normal");
     this._entry = undefined;
     this._entryLoaded = undefined;
+    this._loadIconPaths(config);
+  }
+
+  /** Paths of `icon` / `icon_off` for the toggle (it only takes paths). */
+  @state() accessor _iconPaths: { on?: string; off?: string } = {};
+
+  private _loadIconPaths(config: StateCardConfig) {
+    const { icon, icon_off: iconOff } = config;
+    this._iconPaths = {};
+    if (!icon && !iconOff) return;
+    Promise.all([
+      icon ? resolveIconPath(icon) : undefined,
+      iconOff ? resolveIconPath(iconOff) : undefined,
+    ]).then(([on, off]) => {
+      if (this._config !== config) return;
+      this._iconPaths = { on, off };
+    });
   }
 
   override connectedCallback(): void {
@@ -358,10 +389,13 @@ export class MoreInfoStateCard extends LitElement {
     if (!name) return nothing;
     if (name === "script") return this._script(stateObj);
     if (name === "press") return this._press(stateObj);
-    if (name === "trigger") {
+    if (name === "trigger" || name === "push") {
       return html`<more-info-popup-trigger-control
         .hass=${this.hass}
         .stateObj=${stateObj}
+        .variant=${name === "push" ? "button" : "switch"}
+        .icon=${this._config!.icon}
+        .layout=${this._config!.button_layout ?? "vertical"}
       ></more-info-popup-trigger-control>`;
     }
     if (name === "more_info") return this._moreInfo(stateObj);
@@ -391,7 +425,10 @@ export class MoreInfoStateCard extends LitElement {
     element.stateObj = stateObj;
     element.hass = this.hass;
     const isFan = domain === "fan";
-    if (name === "toggle") {
+    if (name === "toggle" && (this._iconPaths.on || this._iconPaths.off)) {
+      element.iconPathOn = this._iconPaths.on ?? this._iconPaths.off;
+      element.iconPathOff = this._iconPaths.off ?? this._iconPaths.on;
+    } else if (name === "toggle") {
       element.iconPathOn = isFan
         ? mdiFan
         : domain === "light"
@@ -1316,7 +1353,13 @@ export class MoreInfoStateCard extends LitElement {
       </ha-card>`;
     }
     return html`
-      <ha-card class=${appearance} .label=${computeStateName(stateObj)}>
+      <ha-card
+        class=${appearance}
+        .label=${computeStateName(stateObj)}
+        style=${styleMap(
+          stateColorVars(stateObj, this._config.color, this._config.color_off),
+        )}
+      >
         ${
           this._ready
             ? html`

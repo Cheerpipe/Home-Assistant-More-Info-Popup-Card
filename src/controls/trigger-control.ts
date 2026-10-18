@@ -22,11 +22,14 @@ const STATE_COLORED = ["automation", "script"];
 
 /** `stateColorCss(stateObj, "on" | "off")` for the trigger domains. */
 const stateColor = (domain: string, on: boolean): string => {
-  if (!STATE_COLORED.includes(domain)) {
-    return on ? "var(--primary-color)" : "var(--disabled-color)";
-  }
   const [key, activeKey] = on ? ["on", "active"] : ["off", "inactive"];
-  return `var(--state-${domain}-${key}-color, var(--state-${domain}-${activeKey}-color, var(--state-${activeKey}-color)))`;
+  // Buttons have no state color: primary when lit, like a control button.
+  const fallback = STATE_COLORED.includes(domain)
+    ? `var(--state-${activeKey}-color)`
+    : on
+      ? "var(--primary-color)"
+      : "var(--disabled-color)";
+  return `var(--state-${domain}-${key}-color, var(--state-${domain}-${activeKey}-color, ${fallback}))`;
 };
 
 const SCRIPT_MAX_MODES = ["queued", "parallel"];
@@ -53,10 +56,30 @@ const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 type Phase = "idle" | "firing" | "done" | "error";
 
+/**
+ * - `switch`: two positions like the toggle; the handle goes up and back.
+ * - `button`: one big surface with no positions, lit only while the action
+ *   happens (the press, a running script): nothing suggests a held state.
+ */
+export type TriggerVariant = "switch" | "button";
+
+/**
+ * Shape of the push button: tall like the toggle (`vertical`), a wide bar
+ * (`horizontal`), a centered rounded square (`square`) or a disc (`circle`).
+ */
+export type PushLayout = "vertical" | "horizontal" | "square" | "circle";
+
 export class MoreInfoTriggerControl extends LitElement {
   @property({ attribute: false }) accessor hass: HomeAssistant | undefined;
 
   @property({ attribute: false }) accessor stateObj: HassEntity | undefined;
+
+  /** Replaces the entity icon. */
+  @property({ attribute: false }) accessor icon: string | undefined;
+
+  @property({ attribute: false }) accessor variant: TriggerVariant = "switch";
+
+  @property({ attribute: false }) accessor layout: PushLayout = "vertical";
 
   @state() accessor _phase: Phase = "idle";
 
@@ -187,6 +210,7 @@ export class MoreInfoTriggerControl extends LitElement {
         class=${classMap({ hidden: Boolean(feedback) })}
         .hass=${this.hass}
         .stateObj=${this.stateObj}
+        .icon=${this.icon}
       ></ha-state-icon>
       ${
         feedback
@@ -196,14 +220,25 @@ export class MoreInfoTriggerControl extends LitElement {
     `;
   }
 
+  /** Name of the action under the icon; says it while a script runs. */
+  private get _caption(): string {
+    if (this._running && this._phase === "idle") {
+      return this.hass!.localize("ui.card.script.running_single");
+    }
+    return this._label;
+  }
+
   protected override render() {
     if (!this.hass || !this.stateObj) return nothing;
     const domain = this._domain;
     const up = this._phase !== "idle" || this._running;
+    const push = this.variant === "button";
     return html`
       <div
         class=${classMap({
           pad: true,
+          push,
+          [this.layout]: push,
           up,
           running: this._running && this._phase === "idle",
           error: this._phase === "error",
@@ -221,7 +256,15 @@ export class MoreInfoTriggerControl extends LitElement {
         @keydown=${this._keyDown}
       >
         <div class="track"></div>
-        <div class="handle">${this._handleIcon()}</div>
+        ${
+          push
+            ? html`<div class="fill"></div>
+                <div class="face">
+                  <div class="icon">${this._handleIcon()}</div>
+                  <span class="caption">${this._caption}</span>
+                </div>`
+            : html`<div class="handle">${this._handleIcon()}</div>`
+        }
       </div>
       ${domain === "script" ? this._scriptExtras() : nothing}
       ${domain === "automation" ? this._automationBar() : nothing}
@@ -397,6 +440,113 @@ export class MoreInfoTriggerControl extends LitElement {
       transform: translateY(-100%);
       background-color: var(--on-color);
     }
+    /* Push button: one surface, filled from the middle while it acts. */
+    .pad.push {
+      flex-direction: column;
+      overflow: hidden;
+      transition: scale 120ms ease-out;
+    }
+    .pad.push:not(.disabled):active {
+      scale: 0.98;
+    }
+    .pad.push.horizontal {
+      width: 100%;
+      max-width: 320px;
+      height: 130px;
+      min-height: 0;
+      max-height: none;
+    }
+    .pad.push.horizontal .face {
+      flex-direction: row;
+      gap: var(--ha-space-3);
+    }
+    .pad.push.square,
+    .pad.push.circle {
+      width: 200px;
+      height: 200px;
+      min-height: 0;
+      max-height: none;
+    }
+    .pad.push.circle {
+      border-radius: 50%;
+    }
+    .fill {
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background-color: var(--on-color);
+      opacity: 0;
+      transform: scale(0.4);
+      transition:
+        transform 320ms cubic-bezier(0.2, 0.9, 0.3, 1),
+        opacity 200ms ease-in-out,
+        background-color 180ms ease-in-out;
+    }
+    .pad.push.up .fill {
+      opacity: 1;
+      transform: none;
+    }
+    .face {
+      position: relative;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: var(--ha-space-2);
+      color: var(--primary-text-color);
+      transition: color 180ms ease-in-out;
+      --mdc-icon-size: 32px;
+    }
+    .face .icon {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .pad.push.up .face {
+      color: white;
+    }
+    .caption {
+      font-size: var(--ha-font-size-m);
+      font-weight: var(--ha-font-weight-medium);
+      line-height: 1.4;
+      text-align: center;
+      padding: 0 var(--ha-space-2);
+    }
+    .pad.push.error .fill {
+      background-color: var(--error-color);
+    }
+    .pad.push.error .face {
+      animation: shake-x 400ms ease-in-out;
+    }
+    .pad.push.running .fill {
+      animation: breathe-fill 1.6s ease-in-out infinite;
+    }
+    .pad.push.running .face ha-state-icon {
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+    @keyframes breathe-fill {
+      0%,
+      100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.7;
+      }
+    }
+    @keyframes shake-x {
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+      25% {
+        transform: translateX(-6px);
+      }
+      75% {
+        transform: translateX(6px);
+      }
+    }
     .pad.error .track,
     .pad.error .handle {
       background-color: var(--error-color);
@@ -451,11 +601,16 @@ export class MoreInfoTriggerControl extends LitElement {
     }
     @media (prefers-reduced-motion: reduce) {
       .handle,
-      .track {
+      .track,
+      .fill,
+      .face {
         transition: none;
       }
       .pad.running .track,
       .pad.running .handle ha-state-icon,
+      .pad.push.running .fill,
+      .pad.push.running .face ha-state-icon,
+      .pad.push.error .face,
       .pad.error .handle,
       .feedback {
         animation: none;
