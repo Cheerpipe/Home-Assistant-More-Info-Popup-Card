@@ -81,6 +81,9 @@ export class MoreInfoTriggerControl extends LitElement {
 
   @property({ attribute: false }) accessor layout: PushLayout = "vertical";
 
+  /** Cancel button under a script's control. */
+  @property({ attribute: false }) accessor showCancel = true;
+
   @state() accessor _phase: Phase = "idle";
 
   /** Value of the script fields form (`{ action, data }`). */
@@ -318,14 +321,20 @@ export class MoreInfoTriggerControl extends LitElement {
       this._scriptData = { ...this._scriptData, ...ev.detail.value };
     };
     return html`
-      <ha-control-button-group class="bar">
-        <ha-control-button .disabled=${!current} @click=${cancel}>
-          <ha-svg-icon .path=${mdiStop}></ha-svg-icon>
-          ${hass.localize(
-            multiple ? "ui.card.script.cancel_all" : "ui.card.script.cancel",
-          )}
-        </ha-control-button>
-      </ha-control-button-group>
+      ${
+        this.showCancel
+          ? html`<ha-control-button-group class="bar">
+              <ha-control-button .disabled=${!current} @click=${cancel}>
+                <ha-svg-icon .path=${mdiStop}></ha-svg-icon>
+                ${hass.localize(
+                  multiple
+                    ? "ui.card.script.cancel_all"
+                    : "ui.card.script.cancel",
+                )}
+              </ha-control-button>
+            </ha-control-button-group>`
+          : nothing
+      }
       ${
         script?.description
           ? html`<ha-markdown

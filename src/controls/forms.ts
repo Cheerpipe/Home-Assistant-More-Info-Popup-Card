@@ -47,6 +47,7 @@ export const stateCardForm = () => ({
       schema: [
         { name: "show_state", selector: { boolean: {} } },
         { name: "show_last_changed", selector: { boolean: {} } },
+        { name: "show_cancel", selector: { boolean: {} } },
       ],
     },
     { name: "state_override", selector: { text: {} } },

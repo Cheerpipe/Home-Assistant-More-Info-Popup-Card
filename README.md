@@ -121,6 +121,7 @@ icon_off: mdi:string-lights-off # toggle "off" icon
 color: purple # active color of the control: theme color name or any CSS color
 color_off: "#9e9e9e" # inactive color
 button_layout: vertical # push only: vertical | horizontal | square | circle
+show_cancel: true # Cancel button under a running script (trigger, push)
 appearance: plain # plain (like more-info) | card
 ```
 

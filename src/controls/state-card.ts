@@ -103,6 +103,8 @@ export interface StateCardConfig extends LovelaceCardConfig {
   appearance?: CardAppearance;
   /** Shape of `control: push`. */
   button_layout?: PushLayout;
+  /** Cancel button under a script's trigger / push control (default true). */
+  show_cancel?: boolean;
   /**
    * Replaces the entity icon of the control (toggle, trigger, push); for the
    * toggle it is the "on" icon and `icon_off` the "off" one.
@@ -396,6 +398,7 @@ export class MoreInfoStateCard extends LitElement {
         .variant=${name === "push" ? "button" : "switch"}
         .icon=${this._config!.icon}
         .layout=${this._config!.button_layout ?? "vertical"}
+        .showCancel=${this._config!.show_cancel !== false}
       ></more-info-popup-trigger-control>`;
     }
     if (name === "more_info") return this._moreInfo(stateObj);

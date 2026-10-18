@@ -106,6 +106,9 @@ export const es: Record<keyof typeof en, string> = {
   "controls.control.trigger": "Disparador (interruptor momentáneo)",
   "controls.control.push": "Pulsador (sin estado)",
   "controls.show_state": "Mostrar estado",
+  "controls.show_cancel": "Mostrar Cancelar",
+  "controls.show_cancel_helper":
+    "Botón Cancelar bajo un script en ejecución (controles disparador y pulsador).",
   "controls.show_last_changed": "Mostrar último cambio",
   "controls.state_override": "Texto del estado",
   "controls.appearance": "Apariencia",

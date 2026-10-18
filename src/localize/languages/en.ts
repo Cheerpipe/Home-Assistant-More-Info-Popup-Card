@@ -103,6 +103,9 @@ export const en = {
   "controls.control.trigger": "Trigger (momentary switch)",
   "controls.control.push": "Push button (stateless)",
   "controls.show_state": "Show state",
+  "controls.show_cancel": "Show Cancel",
+  "controls.show_cancel_helper":
+    "Cancel button under a running script (trigger and push controls).",
   "controls.show_last_changed": "Show last changed",
   "controls.state_override": "State text",
   "controls.appearance": "Appearance",
