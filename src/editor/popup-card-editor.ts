@@ -54,12 +54,7 @@ import {
   type Zone,
   type ZoneId,
 } from "../zones";
-import {
-  buildSchema,
-  buildZoneSchema,
-  computeHelper,
-  computeLabel,
-} from "./schema";
+import { buildSchema, computeHelper, computeLabel } from "./schema";
 import {
   cardPathFromEvent,
   createVirtualLovelace,
@@ -86,6 +81,30 @@ type CardElementEditor = HTMLElement & {
 };
 
 const UNDO_LIMIT = 30;
+
+const ZONE_DEFAULTS = {
+  vertical_align: "top",
+  horizontal_align: "left",
+} as const;
+
+/** A header/footer without defaults or empty values; undefined if empty. */
+const cleanZone = (
+  zone: PopupZoneConfig | undefined,
+): PopupZoneConfig | undefined => {
+  if (!zone) return undefined;
+  const next: Record<string, unknown> = { ...zone };
+  for (const [key, value] of Object.entries(next)) {
+    if (
+      value === "" ||
+      value === undefined ||
+      value === ZONE_DEFAULTS[key as keyof typeof ZONE_DEFAULTS] ||
+      (Array.isArray(value) && !value.length)
+    ) {
+      delete next[key];
+    }
+  }
+  return Object.keys(next).length ? (next as PopupZoneConfig) : undefined;
+};
 
 /** Keeps popup ids valid while typing without fighting the user. */
 const sanitizePopupId = (value: string): string =>
@@ -423,44 +442,12 @@ export class MoreInfoPopupCardEditor extends LitElement {
     else delete next.match;
     if (!next.replace_more_info) delete next.match;
     if (!next.entity && !next.match) delete next.show_header_actions;
+    for (const zone of ["header", "footer"] as const) {
+      const cleaned = cleanZone(next[zone] as PopupZoneConfig | undefined);
+      if (cleaned) next[zone] = cleaned;
+      else delete next[zone];
+    }
     this._emit(next as PopupCardConfig);
-  }
-
-  /** Alignment and height of one zone (`main` uses the top-level keys). */
-  private _zoneChanged(
-    zone: ZoneId,
-    ev: CustomEvent<{ value: PopupZoneConfig }>,
-  ) {
-    ev.stopPropagation();
-    if (!this._config) return;
-    const value = ev.detail.value;
-    if (zone === "main") {
-      this._valueChanged(
-        new CustomEvent("value-changed", {
-          detail: {
-            value: {
-              vertical_align: value.vertical_align,
-              horizontal_align: value.horizontal_align,
-            },
-          },
-        }),
-      );
-      return;
-    }
-    const next: PopupZoneConfig = { ...this._config[zone] };
-    const defaults = { vertical_align: "top", horizontal_align: "left" };
-    for (const key of [
-      "vertical_align",
-      "horizontal_align",
-      "min_height",
-    ] as const) {
-      const v = value[key];
-      if (!v || v === defaults[key as keyof typeof defaults]) delete next[key];
-      else (next as Record<string, unknown>)[key] = v;
-    }
-    const config: Record<string, unknown> = { ...this._config, [zone]: next };
-    if (!Object.keys(next).length) delete config[zone];
-    this._emit(config as PopupCardConfig);
   }
 
   private _testPopup() {
@@ -504,7 +491,13 @@ export class MoreInfoPopupCardEditor extends LitElement {
   private _renderMain() {
     const hass = this.hass!;
     const config = this._config!;
-    const data = { ...DEFAULTS, ...config };
+    // Zone selects show their defaults (the YAML keeps only changes).
+    const data = {
+      ...DEFAULTS,
+      ...config,
+      header: { ...ZONE_DEFAULTS, ...config.header },
+      footer: { ...ZONE_DEFAULTS, ...config.footer },
+    };
     return html`
       <ha-form
         .hass=${hass}
@@ -582,7 +575,7 @@ export class MoreInfoPopupCardEditor extends LitElement {
     const hass = this.hass!;
     return html`
       <section class="zone zone-${zone.id}">
-        <div class="zone-header">
+        <div class="zone-label">
           <span class="zone-title">
             ${localize(hass, `editor.zone.${zone.id}`)}
           </span>
@@ -590,16 +583,6 @@ export class MoreInfoPopupCardEditor extends LitElement {
             ${localize(hass, `editor.zone.${zone.id}_hint`)}
           </span>
         </div>
-        <ha-form
-          class="zone-options"
-          .hass=${hass}
-          .data=${zone}
-          .schema=${buildZoneSchema(hass, zone.id)}
-          .computeLabel=${computeLabel(hass)}
-          .computeHelper=${computeHelper(hass, this._config!)}
-          @value-changed=${(ev: CustomEvent<{ value: PopupZoneConfig }>) =>
-            this._zoneChanged(zone.id, ev)}
-        ></ha-form>
         ${this._renderGrid(zone.id)}
       </section>
     `;
@@ -726,7 +709,7 @@ export class MoreInfoPopupCardEditor extends LitElement {
       background: var(--secondary-background-color);
       padding-bottom: var(--ha-space-4);
     }
-    .zone-header {
+    .zone-label {
       display: flex;
       align-items: baseline;
       gap: var(--ha-space-2);
