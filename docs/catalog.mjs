@@ -334,14 +334,30 @@ export const PAGES = [
             id: "trigger_template",
             kind: "text",
             title: "One popup for many entities",
-            text: "With `match`, one popup replaces the more-info of every entity it matches: `integration` (the integration that provides the entity), `domain` and `entity_glob` (`*` matches any text) must all match, and `entities` are always included. The opened entity becomes the popup's entity (title, history, settings, menu) and replaces `this` in `entity: this`, `entity_id: this` and `entities` lists of the cards. When several popups match, the one with that `entity` wins, then an `entities` entry, then the one with more criteria.",
+            text: "This single card makes every WLED light on the view (each segment and the main light) open the WLED card instead of the native more-info. With `match`, one popup replaces the more-info of every entity it matches: `integration` (the integration that provides the entity), `domain` and `entity_glob` (`*` matches any text) must all match, and `entities` are always included. The opened entity becomes the popup's entity (title, history, settings, menu) and replaces `this` in `entity: this`, `entity_id: this` and `entities` lists of the cards. When several popups match, the one with that `entity` wins, then an `entities` entry, then the one with more criteria.",
             yaml: {
               type: POPUP,
-              popup_id: "wled",
+              popup_id: "wled_lights",
               replace_more_info: true,
               match: { integration: "wled", domain: "light" },
               cards: [
                 { type: "custom:more-info-wled-state-card", entity: "this" },
+              ],
+            },
+          },
+          {
+            id: "trigger_template_covers",
+            kind: "text",
+            title: "Any domain or integration",
+            text: "The same works for any integration or domain, for example every cover on the view. `entity_glob` narrows it down by entity ID (`light.living_room_*`).",
+            yaml: {
+              type: POPUP,
+              popup_id: "covers",
+              replace_more_info: true,
+              match: { domain: "cover" },
+              cards: [
+                state("this"),
+                tile("this", { features: [{ type: "cover-open-close" }] }),
               ],
             },
           },

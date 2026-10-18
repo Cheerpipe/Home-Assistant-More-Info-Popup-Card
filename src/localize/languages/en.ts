@@ -208,8 +208,6 @@ export const en = {
   "wled.color_black": "Black (off)",
   "wled.not_used": "Not used by this effect",
   "wled.not_wled": "Pick a light of the WLED integration.",
-  "wled.main_light":
-    "This is the WLED main light (brightness only): pick one of its segment lights.",
   "wled.unreachable":
     "Secondary color, palette previews and effect details come straight from WLED ({host}), which this browser can't reach.",
   "wled.mixed_content":

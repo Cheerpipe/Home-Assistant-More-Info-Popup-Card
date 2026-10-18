@@ -43,7 +43,7 @@ Checked on a real WLED (MoonModules 14.7.3, 180 LEDs, 4 segments) added to the d
 
 | Case                                                                                                                  | How          | Evidence                                                                          |
 | --------------------------------------------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------- |
-| Segment, palette select and speed / intensity numbers found by unique id; main light refused                          | Unit, HA     | `wled-link.test.ts`, dev instance                                                 |
+| Segment, palette select and speed / intensity numbers found by unique id; main light gets plain controls              | Unit, HA     | `wled-link.test.ts`, dev instance                                                 |
 | Effect metadata: sliders, custom labels, options, colors, palette, categories (incl. MoonModules `1.5d` and defaults) | Unit         | `wled-meta.test.ts` with real `/json/fxdata` strings                              |
 | Secondary color sets only color slot 2 (`col: [[], rgb]`)                                                             | HA           | device state read back                                                            |
 | Palettes with previews, dynamic ones from the segment colors; selection through the select entity                     | HA, Shot     | [palettes](images/wled_palettes.png), [dynamic](images/wled_palettes_dynamic.png) |

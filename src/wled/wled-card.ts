@@ -394,9 +394,9 @@ export class MoreInfoWledStateCard extends LitElement {
         })
       : this._link === "not_wled"
         ? this._t("wled.not_wled")
-        : this._link === "main_light"
-          ? this._t("wled.main_light")
-          : undefined;
+        : // The main light of a multi-segment device only has a brightness:
+          // it gets the plain light controls, without the WLED extras.
+          undefined;
     if (error || !stateObj) {
       return html`<ha-card class=${appearance}>
         <ha-alert alert-type="warning">${error}</ha-alert>
@@ -588,6 +588,9 @@ export class MoreInfoWledStateCard extends LitElement {
     const supportsWhite = lightSupportsWhite(stateObj);
     const device = Boolean(this._segment);
     const hasPalettes = Boolean(this._paletteEntity || this._catalog);
+    // Like the native bar, a light with brightness only (WLED's main light)
+    // gets the power button alone.
+    const modes = supportsColor || supportsColorTemp || hasPalettes;
     const mode = this._mode;
     const setMode = (next: MainControl) => (ev: Event) => {
       ev.stopPropagation();
@@ -612,9 +615,9 @@ export class MoreInfoWledStateCard extends LitElement {
         >
           <ha-svg-icon .path=${mdiPower}></ha-svg-icon>
         </ha-icon-button>
-        <div class="separator"></div>
+        ${modes ? html`<div class="separator"></div>` : nothing}
         ${
-          supportsBrightness
+          supportsBrightness && modes
             ? html`<ha-icon-button-toggle
                 .selected=${mode === "brightness"}
                 .disabled=${unavailable}

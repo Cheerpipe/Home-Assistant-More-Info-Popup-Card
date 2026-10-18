@@ -211,8 +211,6 @@ export const es: Record<keyof typeof en, string> = {
   "wled.color_black": "Negro (apagado)",
   "wled.not_used": "Este efecto no lo usa",
   "wled.not_wled": "Elige una luz de la integración WLED.",
-  "wled.main_light":
-    "Esta es la luz principal de WLED (solo brillo): elige una de las luces de sus segmentos.",
   "wled.unreachable":
     "El color secundario, la vista previa de paletas y el detalle de los efectos vienen directo de WLED ({host}), al que este navegador no llega.",
   "wled.mixed_content":

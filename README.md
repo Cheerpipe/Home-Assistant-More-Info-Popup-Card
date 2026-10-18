@@ -100,19 +100,43 @@ More examples for every option: [docs/popup-card.md](docs/popup-card.md).
 A popup with `match` replaces the more-info of every entity it matches, so a
 dashboard full of WLED lights needs a single popup. In its cards, `entity: this`
 is the entity that was opened, which also becomes the popup's entity (title,
-history, settings and menu).
+area ▸ device breadcrumb, history, settings and ⋮ menu, like the native header).
+
+Add this one card to a view and every WLED light on it (each segment and the
+main light) opens the [WLED card](#custommore-info-wled-state-card) instead of
+the native more-info:
 
 ```yaml
 type: custom:more-info-popup-card
-popup_id: wled
+popup_id: wled_lights
 replace_more_info: true
 match:
-  integration: wled # integration that provides the entity
+  integration: wled # lights provided by the WLED integration
   domain: light
 cards:
   - type: custom:more-info-wled-state-card
     entity: this
 ```
+
+It works for any integration or domain. Every cover on the view, with the
+native state header and controls plus open/close buttons:
+
+```yaml
+type: custom:more-info-popup-card
+popup_id: covers
+replace_more_info: true
+match:
+  domain: cover
+cards:
+  - type: custom:more-info-state-card
+    entity: this
+  - type: tile
+    entity: this
+    features:
+      - type: cover-open-close
+```
+
+Or only some lights, by entity ID: `match: { entity_glob: light.living_room_* }`.
 
 | `match` key   | Matches                                                |
 | ------------- | ------------------------------------------------------ |
@@ -223,9 +247,10 @@ Assistant's WLED integration doesn't show:
   them (Speed, Intensity, or "Duty cycle", "Clouds", "Distance"…), only the
   ones the effect uses.
 
-It only accepts **segment lights of the WLED integration** (`light.wled`,
+It is meant for **segment lights of the WLED integration** (`light.wled`,
 `light.wled_segment_1`…). The "main" light WLED creates for multi-segment
-devices only has a brightness, so it isn't accepted.
+devices only has a brightness, so it gets the plain light controls (power and
+brightness) without the WLED extras.
 
 | Overview                                    | Secondary color                                    | Palettes with previews                     |
 | ------------------------------------------- | -------------------------------------------------- | ------------------------------------------ |
