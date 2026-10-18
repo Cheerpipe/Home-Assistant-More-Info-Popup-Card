@@ -8,7 +8,11 @@ export const EDITOR_TAG = "more-info-popup-card-editor";
 
 export type PopupMode = "auto" | "dialog" | "bottom_sheet" | "top_sheet";
 export type PopupWidth = "small" | "medium" | "large" | "full" | "custom";
-export type PopupHeight = "auto" | "custom";
+/**
+ * "native" sizes like HA's more-info (full-height sheet, content-sized
+ * dialog); "auto" always fits the content.
+ */
+export type PopupHeight = "native" | "auto" | "custom";
 export type NestedMoreInfo = "inline" | "dialog";
 export type VerticalAlign = "top" | "center" | "bottom";
 export type HorizontalAlign = "left" | "center" | "right";
@@ -85,7 +89,7 @@ export const DEFAULTS = {
   breadcrumb: "auto",
   mode: "auto",
   width: "medium",
-  height: "auto",
+  height: "native",
   column_span: 1,
   layout: "single",
   vertical_align: "top",
@@ -101,7 +105,7 @@ export const DEFAULTS = {
 
 const MODES: PopupMode[] = ["auto", "dialog", "bottom_sheet", "top_sheet"];
 const WIDTHS: PopupWidth[] = ["small", "medium", "large", "full", "custom"];
-const HEIGHTS: PopupHeight[] = ["auto", "custom"];
+const HEIGHTS: PopupHeight[] = ["native", "auto", "custom"];
 const NESTED: NestedMoreInfo[] = ["inline", "dialog"];
 const VERTICAL: VerticalAlign[] = ["top", "center", "bottom"];
 const HORIZONTAL: HorizontalAlign[] = ["left", "center", "right"];
@@ -264,6 +268,15 @@ export const dialogWidth = (
   return config.width;
 };
 
+const SHEET_WIDTHS: Record<string, string | undefined> = {
+  small: "var(--ha-dialog-width-sm, 320px)",
+  medium: "var(--ha-dialog-width-md, 580px)",
+  large: "var(--ha-dialog-width-lg, 1024px)",
+};
+
+const FULL_SHEET_HEIGHT =
+  "calc(100dvh - max(var(--safe-area-inset-top), 48px))";
+
 /** CSS custom properties that size the native dialog / bottom sheet. */
 export const sizeStyles = (
   config: ResolvedPopupConfig,
@@ -272,6 +285,15 @@ export const sizeStyles = (
   if (config.width === "custom" && config.custom_width) {
     styles["--ha-dialog-width-md"] = config.custom_width;
     styles["--ha-bottom-sheet-max-width"] = config.custom_width;
+  } else {
+    // The sheet has no width presets: give it the dialog's width.
+    const width = SHEET_WIDTHS[dialogWidth(config)];
+    if (width) styles["--ha-bottom-sheet-max-width"] = width;
+  }
+  if (config.height === "native") {
+    // Full-height bottom sheet, like the native more-info.
+    styles["--ha-bottom-sheet-height"] = FULL_SHEET_HEIGHT;
+    styles["--ha-bottom-sheet-max-height"] = FULL_SHEET_HEIGHT;
   }
   if (config.height === "custom") {
     if (config.min_height) {

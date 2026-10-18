@@ -1039,16 +1039,6 @@ export class MoreInfoPopupDialog extends LitElement {
     contentStyles,
     zoneStyles,
     css`
-      :host {
-        /* Same full-height bottom sheet as the native more-info */
-        --ha-bottom-sheet-height: calc(
-          100vh - max(var(--safe-area-inset-top), 48px)
-        );
-        --ha-bottom-sheet-height: calc(
-          100dvh - max(var(--safe-area-inset-top), 48px)
-        );
-        --ha-bottom-sheet-max-height: var(--ha-bottom-sheet-height);
-      }
       [hidden] {
         display: none !important;
       }

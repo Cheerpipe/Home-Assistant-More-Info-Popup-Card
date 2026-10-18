@@ -118,6 +118,27 @@ describe("sizing", () => {
   });
 });
 
+describe("sizeStyles presets", () => {
+  it("gives the sheet the dialog width", () => {
+    const auto = resolveConfig({ ...base, height: "auto" });
+    expect(sizeStyles(auto)).toEqual({
+      "--ha-bottom-sheet-max-width": "var(--ha-dialog-width-md, 580px)",
+    });
+    expect(sizeStyles({ ...auto, width: "full" })).toEqual({});
+  });
+
+  it("uses the native full-height sheet by default and fits with auto", () => {
+    const native = sizeStyles(resolveConfig(base));
+    expect(native).toMatchObject({
+      "--ha-bottom-sheet-height": expect.stringContaining("100dvh"),
+    });
+    expect(native).not.toHaveProperty("--ha-dialog-min-height");
+    expect(
+      sizeStyles(resolveConfig({ ...base, height: "auto" })),
+    ).not.toHaveProperty("--ha-bottom-sheet-height");
+  });
+});
+
 describe("slugify", () => {
   it("creates valid popup ids", () => {
     expect(slugify("Salón principal")).toBe("salon_principal");

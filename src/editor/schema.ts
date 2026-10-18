@@ -3,6 +3,7 @@ import {
   mdiDockWindow,
   mdiFilterVariant,
   mdiPaletteSwatchOutline,
+  mdiViewSplitHorizontal,
 } from "@mdi/js";
 import type { PopupCardConfig } from "../config";
 import type { HomeAssistant } from "../ha/types";
@@ -177,7 +178,7 @@ export const buildSchema = (
             selector: {
               select: {
                 mode: "dropdown",
-                options: options(hass, "height", ["auto", "custom"]),
+                options: options(hass, "height", ["native", "auto", "custom"]),
               },
             },
           },
@@ -216,7 +217,7 @@ export const buildSchema = (
           },
         },
       },
-      // With zones, each zone has its own alignment next to its cards.
+      // With zones, each zone has its alignment in the Zones section.
       ...(config.layout === "zones" ? [] : [alignSchema(hass)]),
       { name: "card_borders", selector: { boolean: {} } },
       ...(config.entity || config.match
@@ -224,6 +225,7 @@ export const buildSchema = (
         : []),
     ],
   },
+  ...(config.layout === "zones" ? [zonesSchema(hass)] : []),
   {
     name: "behavior",
     type: "expandable",
@@ -290,10 +292,32 @@ const alignSchema = (hass: HomeAssistant, withHeight = false) => ({
   ],
 });
 
-/** Options of one zone of `layout: zones` (the main zone fills the rest). */
-export const buildZoneSchema = (hass: HomeAssistant, zone: ZoneId) => [
-  alignSchema(hass, zone !== "main"),
-];
+/**
+ * `layout: zones`: alignment of each zone, kept out of the cards frame.
+ * Header and footer edit their nested object; the main zone uses the
+ * top-level keys.
+ */
+const zonesSchema = (hass: HomeAssistant): Schema => {
+  const zone = (id: ZoneId) => ({
+    name: id === "main" ? "main_zone" : id,
+    type: "expandable",
+    flatten: id === "main",
+    title: `${localize(hass, `editor.zone.${id}`)} · ${localize(
+      hass,
+      `editor.zone.${id}_hint`,
+    )}`,
+    schema: [alignSchema(hass, id !== "main")],
+  });
+  return {
+    name: "zones",
+    type: "expandable",
+    flatten: true,
+    expanded: true,
+    iconPath: mdiViewSplitHorizontal,
+    title: localize(hass, "editor.section.zones"),
+    schema: [zone("header"), zone("main"), zone("footer")],
+  };
+};
 
 const HELPERS: Partial<Record<string, TranslationKey>> = {
   entity: "editor.entity_helper",
