@@ -133,6 +133,16 @@ export const STATE_CONTROLS = {
     extraTags: ["ha-control-button"],
     inline: true,
   },
+  /**
+   * Momentary switch for one-shot entities (scripts, buttons, automations),
+   * drawn by the card in the look of the toggle (`trigger-control.ts`).
+   */
+  trigger: {
+    tag: "ha-control-button-group",
+    load: "script",
+    extraTags: ["ha-control-button", "ha-markdown", "ha-service-control"],
+    inline: true,
+  },
 } as const satisfies Record<string, StateControlSpec>;
 
 export type StateControlName = keyof typeof STATE_CONTROLS;
@@ -168,7 +178,6 @@ const DOMAINS_NO_INFO = ["camera", "configurator"];
  * no reusable control: shown with `more_info`.
  */
 const NATIVE_MORE_INFO_DOMAINS = [
-  "automation",
   "camera",
   "conversation",
   "counter",
@@ -284,10 +293,10 @@ export const autoStateControl = (
     case "media_player":
       return "media_player";
     case "script":
-      return "script";
     case "button":
     case "input_button":
-      return "press";
+    case "automation":
+      return "trigger";
     default:
       return NATIVE_MORE_INFO_DOMAINS.includes(domain)
         ? "more_info"

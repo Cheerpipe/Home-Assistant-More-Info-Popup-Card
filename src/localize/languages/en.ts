@@ -99,6 +99,7 @@ export const en = {
   "controls.control.more_info": "Native more-info content",
   "controls.control.script": "Script (run / cancel)",
   "controls.control.press": "Press button",
+  "controls.control.trigger": "Trigger (momentary switch)",
   "controls.show_state": "Show state",
   "controls.show_last_changed": "Show last changed",
   "controls.state_override": "State text",

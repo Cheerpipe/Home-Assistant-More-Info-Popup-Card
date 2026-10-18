@@ -40,6 +40,7 @@ import type {
 import { fireEvent } from "../ha/fire-event";
 import { runNativeMethod } from "../ha/internals";
 import { ensureMoreInfoElements } from "./loader";
+import "./trigger-control";
 import {
   ALARM_DISARM_STATES,
   blankBeforePercent,
@@ -170,6 +171,13 @@ const autoStateOverride = (
     return attrs.mode === "parallel" && current > 1
       ? hass.localize("ui.card.script.running_parallel", { active: current })
       : hass.localize("ui.card.script.running_single");
+  }
+  // The state is the time of the last press: the header already says it.
+  if (
+    (domain === "button" || domain === "input_button") &&
+    stateObj.state !== "unavailable"
+  ) {
+    return hass.localize("ui.card.button.press");
   }
   if (domain === "cover" || domain === "valve") {
     const position = positionStateDisplay(hass, stateObj);
@@ -350,6 +358,12 @@ export class MoreInfoStateCard extends LitElement {
     if (!name) return nothing;
     if (name === "script") return this._script(stateObj);
     if (name === "press") return this._press(stateObj);
+    if (name === "trigger") {
+      return html`<more-info-popup-trigger-control
+        .hass=${this.hass}
+        .stateObj=${stateObj}
+      ></more-info-popup-trigger-control>`;
+    }
     if (name === "more_info") return this._moreInfo(stateObj);
     const domain = computeDomain(stateObj.entity_id);
     if (this._positionComposite(stateObj)) {
@@ -1278,7 +1292,7 @@ export class MoreInfoStateCard extends LitElement {
         .stateObj=${stateObj}
         .stateOverride=${override}
         .changedOverride=${
-          computeDomain(stateObj.entity_id) === "script"
+          ["script", "automation"].includes(computeDomain(stateObj.entity_id))
             ? stateObj.attributes.last_triggered || 0
             : undefined
         }

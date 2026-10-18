@@ -102,6 +102,7 @@ export const es: Record<keyof typeof en, string> = {
   "controls.control.more_info": "Contenido nativo de more-info",
   "controls.control.script": "Script (ejecutar / cancelar)",
   "controls.control.press": "Botón de pulsar",
+  "controls.control.trigger": "Disparador (interruptor momentáneo)",
   "controls.show_state": "Mostrar estado",
   "controls.show_last_changed": "Mostrar último cambio",
   "controls.state_override": "Texto del estado",

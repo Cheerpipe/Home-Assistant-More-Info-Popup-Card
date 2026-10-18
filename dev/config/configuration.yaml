@@ -8,3 +8,31 @@ demo:
 
 logger:
   default: warning
+
+# One-shot entities for the state card `trigger` control.
+script:
+  movie_night:
+    alias: Movie night
+    icon: mdi:movie-open
+    sequence:
+      - delay: 5
+  announce:
+    alias: Announce
+    icon: mdi:bullhorn
+    fields:
+      message:
+        name: Message
+        required: true
+        selector:
+          text:
+    sequence:
+      - delay: 1
+
+automation:
+  - id: good_morning
+    alias: Good morning
+    triggers:
+      - trigger: time
+        at: "07:00:00"
+    actions:
+      - delay: 1
