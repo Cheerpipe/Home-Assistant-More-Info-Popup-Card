@@ -14,6 +14,8 @@ export interface EntityRegistryDisplayEntry {
   hidden?: boolean;
   entity_category?: string | null;
   next_name_part?: string | null;
+  platform?: string;
+  translation_key?: string;
 }
 
 export interface DeviceRegistryEntry {
@@ -24,6 +26,7 @@ export interface DeviceRegistryEntry {
   entry_type: "service" | null;
   parent_device_id?: string | null;
   next_name_part?: string | null;
+  configuration_url?: string | null;
 }
 
 export interface AreaRegistryEntry {

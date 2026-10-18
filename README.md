@@ -12,7 +12,8 @@ in the header, and to **replace that entity's more-info** everywhere on the view
 It also ships the native **building blocks of a more-info dialog** as cards (the
 state header with its big control, and the row of chips with selects, toggles,
 numbers, actions and command buttons) so a popup can be a fully **customized
-more-info**.
+more-info**, and a **[light more-info for WLED](#custommore-info-wled-state-card)**
+with secondary color, palette previews and effects grouped like in WLED.
 
 Requires Home Assistant **2026.10** or newer. 📖 **[Documentation with ~70
 captured examples](docs/README.md)**.
@@ -173,6 +174,108 @@ controls:
     icon: mdi:texture-box
     tap_action: { action: navigate, navigation_path: "#rooms" }
 ```
+
+### `custom:more-info-wled-state-card`
+
+A light more-info made for **[WLED](https://kno.wled.ge/)** lights. It is the
+native light more-info (same header, brightness slider, color wheel, color
+temperature and button bar), plus everything WLED can do that Home
+Assistant's WLED integration doesn't show:
+
+- the **secondary color** (and the tertiary one, when the effect uses it),
+- the **palettes with their previews**, like in WLED's own interface,
+- a **searchable effect list grouped like WLED's**: strip, matrix, strip on
+  matrix, audio reactive (volume / frequency) and effects that use a palette,
+- the **sliders and options of the current effect**, with the names WLED gives
+  them (Speed, Intensity, or "Duty cycle", "Clouds", "Distance"…), only the
+  ones the effect uses.
+
+It only accepts **segment lights of the WLED integration** (`light.wled`,
+`light.wled_segment_1`…). The "main" light WLED creates for multi-segment
+devices only has a brightness, so it isn't accepted.
+
+| Overview                                    | Secondary color                                    | Palettes with previews                     |
+| ------------------------------------------- | -------------------------------------------------- | ------------------------------------------ |
+| ![WLED card](docs/images/wled_overview.png) | ![Secondary color](docs/images/wled_secondary.png) | ![Palettes](docs/images/wled_palettes.png) |
+
+| Dynamic palettes (from the segment colors)                 | Effects                                  | Effects filtered by category                         |
+| ---------------------------------------------------------- | ---------------------------------------- | ---------------------------------------------------- |
+| ![Dynamic palettes](docs/images/wled_palettes_dynamic.png) | ![Effects](docs/images/wled_effects.png) | ![Audio effects](docs/images/wled_effects_audio.png) |
+
+```yaml
+type: custom:more-info-wled-state-card
+entity: light.wled_segment_1
+show_state: true # header with the brightness and the last change
+show_last_changed: true
+show_effects: true # effect, its sliders and options
+host: http://192.168.1.50 # optional: defaults to the device's address in HA
+appearance: plain # plain (like more-info) | card
+```
+
+#### The button bar
+
+Like the light more-info, the round buttons under the main control switch what
+it shows. The WLED card adds two:
+
+| Button             | Main control                                                                                                                                                                               |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| ⏻                  | turns the segment on / off                                                                                                                                                                 |
+| brightness         | the native brightness slider                                                                                                                                                               |
+| color wheel        | the native color wheel (primary color)                                                                                                                                                     |
+| **filled circle**  | **secondary color**: a color wheel for WLED's second color slot, shown in the button. With effects that use a third color, the wheel switches between both; ⊘ sets the slot to black (off) |
+| color temperature  | the native color temperature picker, for segments that have it                                                                                                                             |
+| **palette swatch** | **palettes**: every palette with its preview, the current one highlighted. The `*` palettes are drawn with the segment's colors                                                            |
+
+The secondary color and palette buttons are disabled when the current effect
+doesn't use them, exactly like WLED hides them in its own interface.
+
+#### Effects
+
+The **Effect** row shows the current effect and its categories. It opens the
+effect list: inside a popup as a native sub-view with a back arrow, on a
+dashboard right below the row. Search by name, filter by category, and pick:
+the list closes and the light changes.
+
+| Icon (Material Design) | Category                                              |
+| ---------------------- | ----------------------------------------------------- |
+| LED strip              | strip (1D)                                            |
+| grid                   | matrix (2D)                                           |
+| square outline         | strip effect expanded on a matrix (1.5D, MoonModules) |
+| speaker                | audio reactive, volume (needs the audio usermod)      |
+| waveform               | audio reactive, frequency                             |
+| palette                | uses the palette                                      |
+
+Under the row come the **sliders and options of the current effect**, named
+and shown the way WLED's metadata describes them: an effect without sliders
+shows none, "Blink" shows Speed and Duty cycle, "Color Clouds" shows Speed,
+Intensity, Clouds, Colors, Distance and the Cozy option.
+
+![Effect sliders and options](docs/images/wled_effect_controls.png)
+
+#### How it talks to WLED
+
+Brightness, the primary color, the effect, the palette, speed and intensity go
+through Home Assistant (the WLED integration's light, select and number
+entities). The secondary / tertiary colors, the custom sliders and options, the
+palette previews and the effect metadata are not exposed by the integration, so
+the card reads them **straight from the device's JSON API** (`/json/state`,
+`/json/palx`, `/json/fxdata`), which WLED allows from the browser.
+
+That needs the **browser to reach the device**, at the address Home Assistant
+has for it (its configuration URL) or the one in `host`:
+
+- On your network, with Home Assistant opened over `http://`, it just works.
+- If Home Assistant is opened over `https://` (Nabu Casa, a reverse proxy…),
+  browsers block calls to an `http://` device. Set `host` to an `https://`
+  address of the device (for example a reverse proxy), or use the card from
+  your network over http.
+- Away from home (no access to the device), those parts are hidden and the
+  card keeps working with what Home Assistant offers: brightness, colors,
+  effect list, palettes by name, speed and intensity. A short note under the
+  card says why.
+
+The effect and palette catalog is read once per firmware version and kept in
+the browser.
 
 ## Visual editor
 
