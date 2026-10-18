@@ -69,7 +69,8 @@ cards:
 | `fire-dom-event`                       | `tap_action: { action: fire-dom-event, more_info_popup: { open: living_room } }` |
 | Link / bookmark                        | `/dashboard/view#living_room`                                                    |
 
-`fire-dom-event` also accepts `close` (optionally with an ID) and `toggle`.
+`fire-dom-event` also accepts `close` (optionally with an ID) and `toggle`;
+`open` and `toggle` take an optional `entity` for popups that use `entity: this`.
 
 ### Options
 
@@ -88,10 +89,42 @@ More examples for every option: [docs/popup-card.md](docs/popup-card.md).
 | `column_span`         | `1`      | Grid width in sections: `1` = 12 columns, `2` = 24 columns (opens a large dialog).                                                            |
 | `show_header_actions` | `true`   | Show history, settings and menu when an entity is set.                                                                                        |
 | `replace_more_info`   | `false`  | Show this popup instead of the entity's native more-info on this view.                                                                        |
+| `match`               |          | With `replace_more_info`: also replace the more-info of these entities. See [One popup for many entities](#one-popup-for-many-entities).      |
 | `nested_more_info`    | `inline` | Entities opened from inside the popup: `inline` (navigate inside, like HA) or `dialog`.                                                       |
 | `dismissable`         | `true`   | Close with Esc, clicking outside or swiping down.                                                                                             |
 | `auto_close`          | `0`      | Seconds of inactivity before closing (`0` = never).                                                                                           |
 | `keep_alive`          | `false`  | Keep the cards loaded while closed for a faster reopen.                                                                                       |
+
+### One popup for many entities
+
+A popup with `match` replaces the more-info of every entity it matches, so a
+dashboard full of WLED lights needs a single popup. In its cards, `entity: this`
+is the entity that was opened, which also becomes the popup's entity (title,
+history, settings and menu).
+
+```yaml
+type: custom:more-info-popup-card
+popup_id: wled
+replace_more_info: true
+match:
+  integration: wled # integration that provides the entity
+  domain: light
+cards:
+  - type: custom:more-info-wled-state-card
+    entity: this
+```
+
+| `match` key   | Matches                                                |
+| ------------- | ------------------------------------------------------ |
+| `integration` | Entities provided by this integration (`wled`, `hue`…) |
+| `domain`      | Entities of this domain (`light`, `switch`…)           |
+| `entity_glob` | Entity IDs matching the pattern; `*` matches any text  |
+| `entities`    | These entities, always (whatever the other keys say)   |
+
+`integration`, `domain` and `entity_glob` must all match. `this` is replaced in
+`entity`, `entity_id` and `entities` lists at any depth of the cards. When
+several popups apply to an entity, the one with that `entity` wins, then an
+`entities` entry, then the one with more criteria, then the last one on the view.
 
 ### Notes
 

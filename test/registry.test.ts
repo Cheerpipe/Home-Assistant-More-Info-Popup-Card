@@ -1,12 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resolveConfig, type PopupCardConfig } from "../src/config";
+import type { HomeAssistant } from "../src/ha/types";
 import { PopupRegistry, type PopupHost } from "../src/registry";
 import { setActivePopup } from "../src/state";
 import { FakeWindow } from "./fake-window";
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-const host = (patch: Partial<PopupCardConfig> = {}) => {
+const host = (patch: Partial<PopupCardConfig> = {}, hass?: HomeAssistant) => {
   const el = document.createElement("div") as unknown as PopupHost & {
     openPopup: ReturnType<typeof vi.fn<(options?: unknown) => void>>;
   };
@@ -19,6 +20,7 @@ const host = (patch: Partial<PopupCardConfig> = {}) => {
       ...patch,
     } as PopupCardConfig),
   });
+  Object.defineProperty(el, "hass", { value: hass });
   el.openPopup = vi.fn<(options?: unknown) => void>();
   return el;
 };
@@ -159,7 +161,10 @@ describe("PopupRegistry other triggers", () => {
       }),
     );
 
-    expect(popup.openPopup).toHaveBeenCalledWith({ view: "history" });
+    expect(popup.openPopup).toHaveBeenCalledWith({
+      view: "history",
+      entity: "light.salon",
+    });
     expect(nativeHandler).not.toHaveBeenCalled();
 
     source.dispatchEvent(
@@ -190,5 +195,91 @@ describe("PopupRegistry other triggers", () => {
     );
     expect(popup.openPopup).not.toHaveBeenCalled();
     real.unregister(popup);
+  });
+
+  it("passes an entity with fire-dom-event open", () => {
+    const popup = host();
+    registry.register(popup);
+    win.dispatchEvent(
+      new CustomEvent("ll-custom", {
+        detail: { more_info_popup: { open: "salon", entity: "light.a" } },
+      }),
+    );
+    expect(popup.openPopup).toHaveBeenCalledWith({ entity: "light.a" });
+  });
+});
+
+describe("PopupRegistry template popups", () => {
+  const hass = {
+    entities: {
+      "light.wled": { entity_id: "light.wled", platform: "wled" },
+      "light.wled_segment_1": {
+        entity_id: "light.wled_segment_1",
+        platform: "wled",
+      },
+      "switch.wled_sync": { entity_id: "switch.wled_sync", platform: "wled" },
+      "light.kitchen": { entity_id: "light.kitchen", platform: "hue" },
+    },
+  } as unknown as HomeAssistant;
+
+  let registry: PopupRegistry;
+
+  beforeEach(() => {
+    document.body.innerHTML = "";
+    registry = new PopupRegistry(new FakeWindow() as unknown as Window);
+  });
+
+  const template = (
+    popup_id: string,
+    match: PopupCardConfig["match"],
+    patch: Partial<PopupCardConfig> = {},
+  ) => {
+    const el = host(
+      { popup_id, replace_more_info: true, match, ...patch },
+      hass,
+    );
+    registry.register(el);
+    return el;
+  };
+
+  it("matches by integration and domain", () => {
+    const wled = template("wled", { integration: "wled", domain: "light" });
+    expect(registry.findByEntity("light.wled_segment_1")).toBe(wled);
+    expect(registry.findByEntity("switch.wled_sync")).toBeUndefined();
+    expect(registry.findByEntity("light.kitchen")).toBeUndefined();
+  });
+
+  it("matches explicit lists and globs", () => {
+    const listed = template("listed", { entities: ["light.kitchen"] });
+    const glob = template("glob", { entity_glob: "light.wled_*" });
+    expect(registry.findByEntity("light.kitchen")).toBe(listed);
+    expect(registry.findByEntity("light.wled_segment_1")).toBe(glob);
+    expect(registry.findByEntity("light.wled")).toBeUndefined();
+  });
+
+  it("needs replace_more_info", () => {
+    template("off", { integration: "wled" }, { replace_more_info: false });
+    expect(registry.findByEntity("light.wled")).toBeUndefined();
+  });
+
+  it("prefers the exact entity, then the most specific match", () => {
+    const exact = template("exact", undefined, { entity: "light.wled" });
+    const specific = template("specific", {
+      integration: "wled",
+      domain: "light",
+    });
+    const broad = template("broad", { integration: "wled" });
+    const listed = template("listed", { entities: ["switch.wled_sync"] });
+    expect(registry.findByEntity("light.wled")).toBe(exact);
+    expect(registry.findByEntity("light.wled_segment_1")).toBe(specific);
+    expect(registry.findByEntity("switch.wled_sync")).toBe(listed);
+    registry.unregister(listed);
+    expect(registry.findByEntity("switch.wled_sync")).toBe(broad);
+  });
+
+  it("breaks ties with the most recently registered popup", () => {
+    template("first", { integration: "wled" });
+    const second = template("second", { integration: "wled" });
+    expect(registry.findByEntity("light.wled")).toBe(second);
   });
 });

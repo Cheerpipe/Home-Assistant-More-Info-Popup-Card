@@ -53,7 +53,16 @@ export const es: Record<keyof typeof en, string> = {
   "editor.show_header_actions": "Mostrar historial, ajustes y menú",
   "editor.replace_more_info": "Reemplazar el more-info de la entidad",
   "editor.replace_more_info_helper":
-    "Al abrir la entidad desde cualquier tarjeta de esta vista se muestra este popup.",
+    "Al abrir la entidad, o cualquier entidad que coincida abajo, desde cualquier tarjeta de esta vista se muestra este popup.",
+  "editor.match": "También para estas entidades (popup plantilla)",
+  "editor.match_integration": "Integración",
+  "editor.match_domain": "Dominio",
+  "editor.entity_glob": "Patrón de ID de entidad",
+  "editor.entity_glob_helper":
+    "Por ejemplo light.wled_*. * coincide con cualquier texto. Integración, dominio y patrón deben coincidir todos.",
+  "editor.match_entities": "Entidades",
+  "editor.match_entities_helper":
+    "Siempre incluidas. Usa entity: this en las tarjetas para la entidad que se abrió.",
   "editor.nested_more_info": "Entidades abiertas desde dentro del popup",
   "editor.nested_more_info.inline":
     "Navegar dentro del popup (como Home Assistant)",

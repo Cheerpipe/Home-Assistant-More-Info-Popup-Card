@@ -7,20 +7,30 @@
  */
 import { DIALOG_TAG, type ResolvedPopupConfig } from "./config";
 import { decodeHash, popHashEntry, stripHash } from "./history";
-import type { MoreInfoEventDetail, MoreInfoView } from "./ha/types";
+import type {
+  HomeAssistant,
+  MoreInfoEventDetail,
+  MoreInfoView,
+} from "./ha/types";
+import { matchScore } from "./match";
 import { getActivePopup } from "./state";
 
 export interface OpenOptions {
   view?: MoreInfoView;
+  /** Entity the popup is opened for (template popups, `entity: this`). */
+  entity?: string;
 }
 
 export interface PopupHost extends HTMLElement {
   readonly popupConfig: ResolvedPopupConfig | undefined;
+  readonly hass?: HomeAssistant;
   openPopup(options?: OpenOptions): void;
 }
 
 interface CustomActionDetail {
-  more_info_popup?: string | { open?: string; close?: string; toggle?: string };
+  more_info_popup?:
+    | string
+    | { open?: string; close?: string; toggle?: string; entity?: string };
 }
 
 const REGISTRY_KEY = Symbol.for("more-info-popup-card.registry");
@@ -60,19 +70,30 @@ export class PopupRegistry {
     return found;
   }
 
+  /**
+   * The `replace_more_info` popup for an entity: its own `entity` first, then
+   * the most specific `match`; ties go to the most recently registered.
+   */
   public findByEntity(entityId: string): PopupHost | undefined {
     let found: PopupHost | undefined;
+    let best = 0;
     for (const host of this._hosts) {
       const config = host.popupConfig;
-      if (
-        host.isConnected &&
-        config?.replace_more_info &&
-        config.entity === entityId
-      ) {
+      if (!host.isConnected || !config) continue;
+      const score = matchScore(config, entityId, host.hass ?? this._hass());
+      if (score > 0 && score >= best) {
         found = host;
+        best = score;
       }
     }
     return found;
+  }
+
+  /** The app's `hass`, for hosts that have not received theirs yet. */
+  private _hass(): HomeAssistant | undefined {
+    const root = this._win.document?.querySelector("home-assistant") as
+      (Element & { hass?: HomeAssistant }) | null;
+    return root?.hass;
   }
 
   public open(popupId: string, options?: OpenOptions): boolean {
@@ -86,9 +107,9 @@ export class PopupRegistry {
     if (active && (!popupId || active.popupId === popupId)) active.close();
   }
 
-  public toggle(popupId: string): void {
+  public toggle(popupId: string, entity?: string): void {
     if (getActivePopup()?.popupId === popupId) this.close(popupId);
-    else this.open(popupId);
+    else this.open(popupId, { entity });
   }
 
   private _install() {
@@ -156,9 +177,9 @@ export class PopupRegistry {
     if (typeof action === "string") {
       this.open(action);
     } else if (action.open) {
-      this.open(action.open);
+      this.open(action.open, { entity: action.entity });
     } else if (action.toggle) {
-      this.toggle(action.toggle);
+      this.toggle(action.toggle, action.entity);
     } else if (action.close !== undefined) {
       this.close(action.close || undefined);
     }
@@ -176,7 +197,10 @@ export class PopupRegistry {
     if (fromPopup) return;
     ev.stopImmediatePropagation();
     const view = detail.view ?? detail.tab;
-    host.openPopup({ view: view && view !== "info" ? view : undefined });
+    host.openPopup({
+      view: view && view !== "info" ? view : undefined,
+      entity: detail.entityId,
+    });
   };
 }
 

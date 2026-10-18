@@ -351,12 +351,12 @@ export class MoreInfoPopupDialog extends LitElement {
   // ---------------------------------------------------------------------------
 
   private _getSection(config: ResolvedPopupConfig): SectionElement {
-    let section = config.keep_alive
-      ? this._keepAlive.get(config.popup_id)
-      : undefined;
+    // A template popup keeps one body per entity it was opened for.
+    const cacheKey = `${config.popup_id}:${config.entity ?? ""}`;
+    let section = config.keep_alive ? this._keepAlive.get(cacheKey) : undefined;
     if (!section) {
       section = document.createElement("hui-section") as SectionElement;
-      if (config.keep_alive) this._keepAlive.set(config.popup_id, section);
+      if (config.keep_alive) this._keepAlive.set(cacheKey, section);
     }
     const sectionConfig: LovelaceSectionConfig = {
       type: "grid",

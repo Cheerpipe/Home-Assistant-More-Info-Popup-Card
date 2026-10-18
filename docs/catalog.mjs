@@ -331,10 +331,25 @@ export const PAGES = [
             },
           },
           {
+            id: "trigger_template",
+            kind: "text",
+            title: "One popup for many entities",
+            text: "With `match`, one popup replaces the more-info of every entity it matches: `integration` (the integration that provides the entity), `domain` and `entity_glob` (`*` matches any text) must all match, and `entities` are always included. The opened entity becomes the popup's entity (title, history, settings, menu) and replaces `this` in `entity: this`, `entity_id: this` and `entities` lists of the cards. When several popups match, the one with that `entity` wins, then an `entities` entry, then the one with more criteria.",
+            yaml: {
+              type: POPUP,
+              popup_id: "wled",
+              replace_more_info: true,
+              match: { integration: "wled", domain: "light" },
+              cards: [
+                { type: "custom:more-info-wled-state-card", entity: "this" },
+              ],
+            },
+          },
+          {
             id: "trigger_dom_event",
             kind: "text",
             title: "fire-dom-event",
-            text: "`open`, `close` (optionally with an id) and `toggle`.",
+            text: "`open`, `close` (optionally with an id) and `toggle`. `open` and `toggle` also take an `entity` for popups that use `entity: this`.",
             yaml: {
               type: "button",
               name: "Toggle living room",

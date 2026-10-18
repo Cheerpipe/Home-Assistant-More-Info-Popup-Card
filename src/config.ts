@@ -1,4 +1,5 @@
 import type { LovelaceCardConfig } from "./ha/types";
+import type { EntityMatch } from "./match";
 
 export const CARD_TYPE = "more-info-popup-card";
 export const CARD_TAG = "more-info-popup-card";
@@ -27,6 +28,8 @@ export interface PopupCardConfig extends LovelaceCardConfig {
   column_span?: number;
   show_header_actions?: boolean;
   replace_more_info?: boolean;
+  /** Template popup: the other entities whose more-info it replaces. */
+  match?: EntityMatch;
   nested_more_info?: NestedMoreInfo;
   dismissable?: boolean;
   /** Seconds of inactivity before closing; 0 disables it. */
@@ -40,6 +43,7 @@ export interface PopupCardConfig extends LovelaceCardConfig {
 
 type OptionalKeys =
   | "entity"
+  | "match"
   | "name"
   | "icon"
   | "custom_width"
@@ -102,6 +106,40 @@ const assertLength = (key: string, value: unknown) => {
   }
 };
 
+const MATCH_KEYS = ["integration", "domain", "entities", "entity_glob"];
+
+const validateMatch = (match: unknown) => {
+  if (match === undefined) return;
+  if (!match || typeof match !== "object" || Array.isArray(match)) {
+    throw new Error(`"match" must be an object with: ${MATCH_KEYS.join(", ")}`);
+  }
+  const m = match as Record<string, unknown>;
+  const unknown = Object.keys(m).find((key) => !MATCH_KEYS.includes(key));
+  if (unknown) {
+    throw new Error(
+      `Unknown "match.${unknown}"; use: ${MATCH_KEYS.join(", ")}`,
+    );
+  }
+  if (!MATCH_KEYS.some((key) => m[key] !== undefined)) {
+    throw new Error(`"match" needs one of: ${MATCH_KEYS.join(", ")}`);
+  }
+  for (const key of ["integration", "domain", "entity_glob"]) {
+    if (m[key] !== undefined && (typeof m[key] !== "string" || !m[key])) {
+      throw new Error(`"match.${key}" must be a text`);
+    }
+  }
+  if (m.domain !== undefined && !/^[a-z0-9_]+$/.test(m.domain as string)) {
+    throw new Error('"match.domain" must be a domain such as light');
+  }
+  if (
+    m.entities !== undefined &&
+    (!Array.isArray(m.entities) ||
+      m.entities.some((id) => typeof id !== "string" || !id.includes(".")))
+  ) {
+    throw new Error('"match.entities" must be a list of entity IDs');
+  }
+};
+
 /** Validates a user config; throws errors that HA shows in its error card. */
 export const validateConfig = (config: unknown): PopupCardConfig => {
   if (!config || typeof config !== "object") {
@@ -122,6 +160,7 @@ export const validateConfig = (config: unknown): PopupCardConfig => {
   ) {
     throw new Error('"entity" must be an entity ID');
   }
+  validateMatch(c.match);
   if (c.cards !== undefined && !Array.isArray(c.cards)) {
     throw new Error('"cards" must be a list');
   }

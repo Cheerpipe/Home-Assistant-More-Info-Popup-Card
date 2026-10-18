@@ -1,4 +1,9 @@
-import { mdiCogOutline, mdiDockWindow, mdiPaletteSwatchOutline } from "@mdi/js";
+import {
+  mdiCogOutline,
+  mdiDockWindow,
+  mdiFilterVariant,
+  mdiPaletteSwatchOutline,
+} from "@mdi/js";
 import type { PopupCardConfig } from "../config";
 import type { HomeAssistant } from "../ha/types";
 import { localize, type TranslationKey } from "../localize/localize";
@@ -10,6 +15,73 @@ const options = (hass: HomeAssistant, key: string, values: string[]) =>
     value,
     label: localize(hass, `editor.${key}.${value}` as TranslationKey),
   }));
+
+const sorted = (items: { value: string; label: string }[]) =>
+  items.sort((a, b) => a.label.localeCompare(b.label));
+
+/** Integrations that provide entities (entity registry `platform`). */
+const integrationOptions = (hass: HomeAssistant) =>
+  sorted(
+    [
+      ...new Set(
+        Object.values(hass.entities ?? {})
+          .map((entry) => entry.platform)
+          .filter((platform): platform is string => Boolean(platform)),
+      ),
+    ].map((value) => ({
+      value,
+      label: hass.localize(`component.${value}.title`) || value,
+    })),
+  );
+
+const domainOptions = (hass: HomeAssistant) =>
+  sorted(
+    [...new Set(Object.keys(hass.states).map((id) => id.split(".")[0]))].map(
+      (value) => ({
+        value,
+        label: hass.localize(`component.${value}.title`) || value,
+      }),
+    ),
+  );
+
+/** Template popup criteria, stored under `match`. */
+const matchSchema = (hass: HomeAssistant): Schema => ({
+  name: "match",
+  type: "expandable",
+  expanded: true,
+  iconPath: mdiFilterVariant,
+  title: localize(hass, "editor.match"),
+  schema: [
+    {
+      name: "",
+      type: "grid",
+      schema: [
+        {
+          name: "integration",
+          selector: {
+            select: {
+              mode: "dropdown",
+              custom_value: true,
+              options: integrationOptions(hass),
+            },
+          },
+        },
+        {
+          name: "domain",
+          selector: {
+            select: {
+              mode: "dropdown",
+              custom_value: true,
+              options: domainOptions(hass),
+            },
+          },
+        },
+      ],
+    },
+    { name: "entity_glob", selector: { text: {} } },
+    { name: "entities", selector: { entity: { multiple: true } } },
+  ],
+});
 
 /** Built per config, like native editors do, to show dependent fields only when relevant. */
 export const buildSchema = (
@@ -134,7 +206,7 @@ export const buildSchema = (
           },
         },
       },
-      ...(config.entity
+      ...(config.entity || config.match
         ? [{ name: "show_header_actions", selector: { boolean: {} } }]
         : []),
     ],
@@ -146,9 +218,8 @@ export const buildSchema = (
     iconPath: mdiCogOutline,
     title: localize(hass, "editor.section.behavior"),
     schema: [
-      ...(config.entity
-        ? [{ name: "replace_more_info", selector: { boolean: {} } }]
-        : []),
+      { name: "replace_more_info", selector: { boolean: {} } },
+      ...(config.replace_more_info ? [matchSchema(hass)] : []),
       {
         name: "nested_more_info",
         selector: {
@@ -184,6 +255,8 @@ const HELPERS: Partial<Record<string, TranslationKey>> = {
   max_height: "editor.length_helper",
   column_span: "editor.column_span_helper",
   replace_more_info: "editor.replace_more_info_helper",
+  entity_glob: "editor.entity_glob_helper",
+  entities: "editor.match_entities_helper",
 };
 
 const LABELS: Partial<Record<string, TranslationKey>> = {
@@ -201,6 +274,10 @@ const LABELS: Partial<Record<string, TranslationKey>> = {
   column_span: "editor.column_span",
   show_header_actions: "editor.show_header_actions",
   replace_more_info: "editor.replace_more_info",
+  integration: "editor.match_integration",
+  domain: "editor.match_domain",
+  entity_glob: "editor.entity_glob",
+  entities: "editor.match_entities",
   nested_more_info: "editor.nested_more_info",
   dismissable: "editor.dismissable",
   auto_close: "editor.auto_close",

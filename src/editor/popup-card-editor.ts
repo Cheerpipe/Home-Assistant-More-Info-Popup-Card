@@ -40,6 +40,7 @@ import type {
   ShowToastParams,
 } from "../ha/types";
 import { localize } from "../localize/localize";
+import { bindEntity, cleanMatch, matchingEntities } from "../match";
 import { buildSchema, computeHelper, computeLabel } from "./schema";
 import {
   cardIndexFromPath,
@@ -114,7 +115,14 @@ export class MoreInfoPopupCardEditor extends LitElement {
     });
   }
 
+  private _titlesRequested = false;
+
   protected override willUpdate(changed: PropertyValues<this>): void {
+    // Integration and domain names for the template popup selects.
+    if (this.hass && !this._titlesRequested) {
+      this._titlesRequested = true;
+      this.hass.loadBackendTranslation?.("title");
+    }
     if (
       (changed.has("_config") || changed.has("hass")) &&
       this._config &&
@@ -349,10 +357,11 @@ export class MoreInfoPopupCardEditor extends LitElement {
       delete next.min_height;
       delete next.max_height;
     }
-    if (!next.entity) {
-      delete next.replace_more_info;
-      delete next.show_header_actions;
-    }
+    const match = cleanMatch(next.match);
+    if (match) next.match = match;
+    else delete next.match;
+    if (!next.replace_more_info) delete next.match;
+    if (!next.entity && !next.match) delete next.show_header_actions;
     this._emit(next as PopupCardConfig);
   }
 
@@ -364,6 +373,11 @@ export class MoreInfoPopupCardEditor extends LitElement {
     } catch {
       return;
     }
+    // A template popup is tested with its first matching entity.
+    config = bindEntity(
+      config,
+      config.entity ?? matchingEntities(config, this.hass!)[0],
+    );
     fireEvent(this, "show-dialog", {
       dialogTag: DIALOG_TAG,
       dialogImport: () => Promise.resolve(),

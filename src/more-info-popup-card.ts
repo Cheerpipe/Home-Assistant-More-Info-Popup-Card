@@ -39,6 +39,7 @@ import "./popup-dialog";
 import type { PopupDialogParams } from "./popup-dialog";
 import { computeHeaderInfo, renderTitle } from "./popup-header";
 import { getRegistry, type OpenOptions, type PopupHost } from "./registry";
+import { bindEntity, matchingEntities } from "./match";
 import "./editor/popup-card-editor";
 import { CONTROLS_CARD_TYPE } from "./controls/controls-card";
 import { STATE_CARD_TYPE } from "./controls/state-card";
@@ -126,8 +127,8 @@ export class MoreInfoPopupCard
   }
 
   public openPopup(options?: OpenOptions): void {
-    const config = this._config;
-    if (!config) return;
+    if (!this._config) return;
+    const config = bindEntity(this._config, options?.entity);
     ensureDialogElements().then((missing) => {
       if (
         missing.includes("ha-adaptive-dialog") ||
@@ -251,8 +252,13 @@ export class MoreInfoPopupCard
     `;
   }
 
-  private _renderPreview(config: ResolvedPopupConfig) {
+  private _renderPreview(template: ResolvedPopupConfig) {
     const hass = this.hass!;
+    // A template popup previews with its first matching entity.
+    const config = bindEntity(
+      template,
+      template.entity ?? matchingEntities(template, hass)[0],
+    );
     const sectionConfig: LovelaceSectionConfig = {
       type: "grid",
       column_span: config.column_span,

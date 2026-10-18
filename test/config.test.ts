@@ -29,8 +29,30 @@ describe("validateConfig", () => {
     [{ column_span: 0 }, /column_span/],
     [{ auto_close: -1 }, /auto_close/],
     [{ cards: {} }, /list/],
+    [{ match: [] }, /"match" must be an object/],
+    [{ match: {} }, /"match" needs one of/],
+    [{ match: { platform: "wled" } }, /Unknown "match.platform"/],
+    [{ match: { domain: "Light" } }, /match.domain/],
+    [{ match: { integration: 3 } }, /match.integration/],
+    [{ match: { entities: "light.a" } }, /match.entities/],
+    [{ match: { entities: ["light"] } }, /match.entities/],
   ])("rejects %o", (patch, error) => {
     expect(() => validateConfig({ ...base, ...patch })).toThrow(error);
+  });
+
+  it("accepts match criteria", () => {
+    expect(() =>
+      validateConfig({
+        ...base,
+        replace_more_info: true,
+        match: {
+          integration: "wled",
+          domain: "light",
+          entities: ["light.a"],
+          entity_glob: "light.wled_*",
+        },
+      }),
+    ).not.toThrow();
   });
 
   it("accepts CSS lengths", () => {

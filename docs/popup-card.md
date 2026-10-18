@@ -30,6 +30,7 @@
 - [Opening a popup](#opening-a-popup)
   - [Navigate action](#navigate-action)
   - [Replace an entity's more-info](#replace-an-entitys-more-info)
+  - [One popup for many entities](#one-popup-for-many-entities)
   - [fire-dom-event](#fire-dom-event)
   - [Links and bookmarks](#links-and-bookmarks)
 - [Behavior](#behavior)
@@ -410,9 +411,25 @@ replace_more_info: true
 cards: []
 ```
 
+### One popup for many entities
+
+With `match`, one popup replaces the more-info of every entity it matches: `integration` (the integration that provides the entity), `domain` and `entity_glob` (`*` matches any text) must all match, and `entities` are always included. The opened entity becomes the popup's entity (title, history, settings, menu) and replaces `this` in `entity: this`, `entity_id: this` and `entities` lists of the cards. When several popups match, the one with that `entity` wins, then an `entities` entry, then the one with more criteria.
+
+```yaml
+type: custom:more-info-popup-card
+popup_id: wled
+replace_more_info: true
+match:
+  integration: wled
+  domain: light
+cards:
+  - type: custom:more-info-wled-state-card
+    entity: this
+```
+
 ### fire-dom-event
 
-`open`, `close` (optionally with an id) and `toggle`.
+`open`, `close` (optionally with an id) and `toggle`. `open` and `toggle` also take an `entity` for popups that use `entity: this`.
 
 ```yaml
 type: button

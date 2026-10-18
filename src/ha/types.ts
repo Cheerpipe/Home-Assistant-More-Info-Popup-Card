@@ -65,6 +65,7 @@ export interface HomeAssistant {
   };
   auth: { external?: { config: { hasEntityAddTo?: boolean } } };
   localize(key: string, values?: Record<string, unknown>): string;
+  loadBackendTranslation?(category: string): Promise<unknown>;
   callWS<T>(msg: { type: string; [key: string]: unknown }): Promise<T>;
   callService(
     domain: string,

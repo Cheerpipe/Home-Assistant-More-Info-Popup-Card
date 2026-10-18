@@ -51,7 +51,16 @@ export const en = {
   "editor.show_header_actions": "Show history, settings and menu",
   "editor.replace_more_info": "Replace the entity's more-info",
   "editor.replace_more_info_helper":
-    "Opening the entity from any card on this view shows this popup instead.",
+    "Opening the entity, or any entity matched below, from any card on this view shows this popup instead.",
+  "editor.match": "Also for these entities (template popup)",
+  "editor.match_integration": "Integration",
+  "editor.match_domain": "Domain",
+  "editor.entity_glob": "Entity ID pattern",
+  "editor.entity_glob_helper":
+    "For example light.wled_*. * matches any text. Integration, domain and pattern must all match.",
+  "editor.match_entities": "Entities",
+  "editor.match_entities_helper":
+    "Always included. Use entity: this in the cards for the entity that was opened.",
   "editor.nested_more_info": "Entities opened from inside the popup",
   "editor.nested_more_info.inline":
     "Navigate inside the popup (like Home Assistant)",
