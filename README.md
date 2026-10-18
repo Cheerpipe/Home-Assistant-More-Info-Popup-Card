@@ -24,7 +24,9 @@ captured examples](docs/README.md)**.
 ## Installation
 
 **HACS:** add this repository as a custom repository (type _Dashboard_),
-install _More-Info Popup Card_ and reload the browser.
+install _More-Info Popup Card_ and reload the browser. To try the latest
+changes before a release, open the card in HACS, choose _Redownload_ and pick
+`main` in the version list (`dist/` is always built on `main`).
 
 **Manual:** copy `dist/more-info-popup-card.js` to `config/www/` and add it as a
 dashboard resource (`/local/more-info-popup-card.js`, type _JavaScript module_).
