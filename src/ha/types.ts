@@ -36,6 +36,12 @@ export interface ExtEntityRegistryEntry extends EntityRegistryDisplayEntry {
   platform: string;
 }
 
+export interface HassService {
+  name?: string;
+  description?: string;
+  fields?: Record<string, { required?: boolean }>;
+}
+
 export type EntityNameType =
   "entity" | "device" | "parent_device" | "area" | "floor";
 
@@ -45,6 +51,7 @@ export interface HomeAssistant {
   devices: Record<string, DeviceRegistryEntry>;
   areas: Record<string, AreaRegistryEntry>;
   floors: Record<string, unknown>;
+  services: Record<string, Record<string, HassService | undefined>>;
   user?: { id: string; name: string; is_admin: boolean };
   language: string;
   locale: Record<string, unknown>;

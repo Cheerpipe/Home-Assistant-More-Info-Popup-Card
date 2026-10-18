@@ -26,6 +26,10 @@ describe("autoStateControl (same choice as more-info)", () => {
     [entity("cover.c", "open", { supported_features: 3 }), "cover_buttons"],
     [entity("climate.a", "heat"), "temperature"],
     [entity("vacuum.a", "docked"), "vacuum_status"],
+    [entity("media_player.a", "playing"), "media_player"],
+    [entity("script.a", "off"), "script"],
+    [entity("button.a", "unknown"), "press"],
+    [entity("input_button.a", "unknown"), "press"],
     [entity("sensor.a", "1"), undefined],
   ])("%o → %s", (stateObj, expected) => {
     expect(autoStateControl(stateObj)).toBe(expected);

@@ -7,6 +7,9 @@ import type { HassEntity, HomeAssistant } from "./types";
 export const computeDomain = (entityId: string): string =>
   entityId.substring(0, entityId.indexOf("."));
 
+export const computeObjectId = (entityId: string): string =>
+  entityId.substring(entityId.indexOf(".") + 1);
+
 const EDITABLE_DOMAINS_WITH_ID = ["scene", "automation"];
 const EDITABLE_DOMAINS_WITH_UNIQUE_ID = ["script"];
 const DOMAINS_MORE_INFO_NO_HISTORY = ["camera", "configurator"];
