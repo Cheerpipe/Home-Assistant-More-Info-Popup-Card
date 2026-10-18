@@ -61,7 +61,10 @@ export const computeHeaderInfo = (
     frame.entityId && frame.entityId !== config.entity
       ? computeEntityNameList(hass, frame.entityId)
       : rootNameList(hass, config);
-  const title = frame.view === "root" ? undefined : viewTitle(hass, frame);
+  const title =
+    frame.view === "root" && !frame.children.length
+      ? undefined
+      : viewTitle(hass, frame);
   const breadcrumb = title ? list : list.slice(0, -1);
   return {
     title: title ?? list[list.length - 1] ?? "",

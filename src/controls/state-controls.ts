@@ -27,6 +27,47 @@ export const LIGHT_TAGS = [
   "ha-more-info-light-favorite-colors",
 ] as const;
 
+/**
+ * Elements `more-info-<domain>` draws around its state control (mode
+ * switch, favorites, extra buttons…), all imported by that control. The
+ * `more-info-*` tags themselves are needed for `runNativeMethod`.
+ */
+export const DOMAIN_TAGS: Partial<Record<string, readonly string[]>> = {
+  cover: [
+    "ha-icon-button-group",
+    "ha-icon-button-toggle",
+    "ha-state-control-cover-position",
+    "ha-state-control-cover-tilt-position",
+    "ha-state-control-cover-toggle",
+    "ha-state-control-cover-buttons",
+    "ha-more-info-cover-favorite-positions",
+  ],
+  valve: [
+    "ha-icon-button-group",
+    "ha-icon-button-toggle",
+    "ha-state-control-valve-position",
+    "ha-state-control-valve-toggle",
+    "ha-state-control-valve-buttons",
+    "ha-more-info-valve-favorite-positions",
+  ],
+  lock: ["ha-control-button", "ha-control-button-group", "ha-state-icon"],
+  alarm_control_panel: ["ha-control-button", "ha-state-icon"],
+  siren: ["ha-button", "more-info-siren"],
+  vacuum: [
+    "ha-control-button",
+    "ha-control-button-group",
+    "ha-battery-icon",
+    "ha-icon-next",
+    "ha-more-info-control-select-container",
+    "more-info-vacuum",
+  ],
+  lawn_mower: [
+    "ha-control-button",
+    "ha-control-button-group",
+    "ha-battery-icon",
+  ],
+};
+
 export const STATE_CONTROLS = {
   toggle: { tag: "ha-state-control-toggle", load: "switch" },
   brightness: {
@@ -197,6 +238,10 @@ export const lightSupportsWhite = (stateObj: HassEntity) =>
 export const supports = (stateObj: HassEntity, feature: number) =>
   ((stateObj.attributes.supported_features ?? 0) & feature) !== 0;
 
+const openCloseOnly = (stateObj: HassEntity, others: number) =>
+  ((stateObj.attributes.supported_features ?? 0) & 3) === 3 &&
+  !supports(stateObj, others);
+
 /** Same choice as the native more-info controls (`more-info-<domain>.ts`). */
 export const autoStateControl = (
   stateObj: HassEntity,
@@ -211,12 +256,17 @@ export const autoStateControl = (
       return "toggle";
     case "fan":
       return supports(stateObj, 1) ? "fan_speed" : "toggle";
+    // Button mode of more-info: open + close without stop (nor tilt) is a
+    // toggle, anything else the buttons.
     case "cover":
       if (supports(stateObj, 4)) return "position";
       if (supports(stateObj, 128)) return "tilt";
-      return "cover_buttons";
+      return openCloseOnly(stateObj, 8 | 16 | 32 | 64)
+        ? "cover_toggle"
+        : "cover_buttons";
     case "valve":
-      return supports(stateObj, 4) ? "valve_position" : "valve_toggle";
+      if (supports(stateObj, 4)) return "valve_position";
+      return openCloseOnly(stateObj, 8) ? "valve_toggle" : "valve_buttons";
     case "lock":
       return "lock";
     case "alarm_control_panel":

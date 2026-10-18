@@ -658,7 +658,7 @@ export class MoreInfoPopupDialog extends LitElement {
   ) {
     const entityId = frame.entityId;
     const isRoot = frame.view === "root";
-    if (!entityId || (isRoot && !config.show_header_actions)) return nothing;
+    if (!entityId) return nothing;
 
     if (!this._isDefaultView(frame)) {
       if (frame.view === "details" && !frame.children.length) {
@@ -682,6 +682,7 @@ export class MoreInfoPopupDialog extends LitElement {
       }
       return nothing;
     }
+    if (isRoot && !config.show_header_actions) return nothing;
 
     const hass = this.hass;
     const admin = isAdmin(hass);
@@ -880,14 +881,18 @@ export class MoreInfoPopupDialog extends LitElement {
     const entityId = frame.entityId;
     const entry = entityId ? this._entries[entityId] : undefined;
 
+    // Child views opened by the cards (vacuum clean areas) cover the grid,
+    // which stays rendered so it keeps its state.
     if (frame.view === "root") {
       return html`
         <div
           class="body"
+          ?hidden=${frame.children.length > 0}
           style=${styleMap({ "--column-span": String(this._config!.column_span) })}
         >
           ${this._section}
         </div>
+        ${this._renderChild(frame)}
       `;
     }
     if (!entityId) return nothing;

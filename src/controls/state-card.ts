@@ -5,18 +5,30 @@
  */
 import {
   mdiBrightness6,
+  mdiCheck,
   mdiFan,
   mdiFanOff,
   mdiFileWordBox,
   mdiGestureTapButton,
+  mdiHomeImportOutline,
   mdiLightbulbOff,
   mdiLightbulbOn,
+  mdiMapMarker,
+  mdiMenu,
+  mdiPause,
   mdiPlay,
+  mdiPlayPause,
   mdiPower,
   mdiStop,
+  mdiSwapVertical,
+  mdiTargetVariant,
+  mdiTextureBox,
+  mdiVolumeHigh,
+  mdiVolumeOff,
 } from "@mdi/js";
 import { css, html, LitElement, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
+import { styleMap } from "lit/directives/style-map.js";
 import { computeDomain, computeObjectId, computeStateName } from "../ha/entity";
 import type {
   ExtEntityRegistryEntry,
@@ -26,9 +38,33 @@ import type {
   LovelaceGridOptions,
 } from "../ha/types";
 import { fireEvent } from "../ha/fire-event";
+import { runNativeMethod } from "../ha/internals";
 import { ensureMoreInfoElements } from "./loader";
 import {
+  ALARM_DISARM_STATES,
+  blankBeforePercent,
+  callProtectedLockService,
+  coverControls,
+  deviceBattery,
+  disarmAlarm,
+  LawnMowerFeature,
+  LOCK_OPEN,
+  lockCanOpen,
+  mowerCanDock,
+  mowerCanStop,
+  positionStateDisplay,
+  showFavoritePositions,
+  SirenFeature,
+  stateColorCss,
+  vacuumCanReturnHome,
+  vacuumCanStop,
+  vacuumCleaning,
+  VacuumFeature,
+  valveControls,
+} from "./native-helpers";
+import {
   autoStateControl,
+  DOMAIN_TAGS,
   DOMAINS_WITHOUT_STATE_HEADER,
   LIGHT_TAGS,
   showsStateRow,
@@ -81,6 +117,27 @@ const fanSpeedCount = (stateObj: HassEntity): number =>
 
 type LightMainControl = "brightness" | "color" | "color_temp";
 
+/** Mode of the cover / valve more-info (`_mode`). */
+type PositionMode = "position" | "button";
+
+/** Controls drawn by the cover / valve more-info as a whole. */
+const POSITION_CONTROLS: readonly StateControlName[] = [
+  "position",
+  "tilt",
+  "cover_toggle",
+  "cover_buttons",
+  "valve_position",
+  "valve_toggle",
+  "valve_buttons",
+];
+
+/** Lock open button (`more-info-lock.ts`). */
+type OpenButtonState = "normal" | "confirm" | "done";
+const OPEN_CONFIRM_SECONDS = 5;
+const OPEN_DONE_SECONDS = 2;
+
+const ignore = () => undefined;
+
 const SCRIPT_MAX_MODES = ["queued", "parallel"];
 
 /** `canRun` (`src/data/script.ts`). */
@@ -114,15 +171,18 @@ const autoStateOverride = (
       ? hass.localize("ui.card.script.running_parallel", { active: current })
       : hass.localize("ui.card.script.running_single");
   }
+  if (domain === "cover" || domain === "valve") {
+    const position = positionStateDisplay(hass, stateObj);
+    return position
+      ? `${hass.formatEntityState(stateObj)} · ${position}`
+      : undefined;
+  }
   if (
-    (domain === "cover" || domain === "valve") &&
-    attrs.current_position != null &&
-    stateObj.state !== "unavailable"
+    domain === "vacuum" &&
+    supports(stateObj, VacuumFeature.STATUS) &&
+    attrs.status
   ) {
-    return `${hass.formatEntityState(stateObj)} · ${hass.formatEntityAttributeValue(
-      stateObj,
-      "current_position",
-    )}`;
+    return hass.formatEntityAttributeValue(stateObj, "status");
   }
   return undefined;
 };
@@ -159,8 +219,15 @@ export class MoreInfoStateCard extends LitElement {
   /** Control shown by the light button bar (`more-info-light`). */
   @state() accessor _lightControl: LightMainControl = "brightness";
 
-  /** Registry entry, for the light favorite colors. */
+  /** Registry entry: favorites, default codes. */
   @state() accessor _entry: ExtEntityRegistryEntry | null | undefined;
+
+  /** Position or button mode of the cover / valve more-info. */
+  @state() accessor _positionMode: PositionMode | undefined;
+
+  @state() accessor _openState: OpenButtonState = "normal";
+
+  private _openTimeout?: ReturnType<typeof setTimeout>;
 
   private _controlElement?: HTMLElement & {
     stateObj?: HassEntity;
@@ -184,6 +251,8 @@ export class MoreInfoStateCard extends LitElement {
     this._loadingKey = undefined;
     this._scriptData = { action: config.entity };
     this._lightControl = "brightness";
+    this._positionMode = undefined;
+    this._setOpenState("normal");
     this._entry = undefined;
     this._entryLoaded = undefined;
   }
@@ -191,6 +260,11 @@ export class MoreInfoStateCard extends LitElement {
   override connectedCallback(): void {
     super.connectedCallback();
     fireEvent(this, POPUP_FILL_EVENT);
+  }
+
+  override disconnectedCallback(): void {
+    super.disconnectedCallback();
+    this._setOpenState("normal");
   }
 
   /**
@@ -242,13 +316,16 @@ export class MoreInfoStateCard extends LitElement {
       const domain = spec.load || computeDomain(this._config.entity);
       loads.push(ensureMoreInfoElements(domain, [spec.tag, ...extra]));
     }
+    // The light button bar and pickers only come with the light more-info,
+    // also for on/off lights shown with the generic toggle. Same for the
+    // other parts each domain's more-info draws around its control.
+    const domain = computeDomain(this._config.entity);
+    const domainTags = domain === "light" ? LIGHT_TAGS : DOMAIN_TAGS[domain];
+    if (spec && domainTags) {
+      loads.push(ensureMoreInfoElements(domain, [...domainTags]));
+    }
     // Climate, humidifier and water heater controls don't import the header:
     // load it from a domain whose more-info has one.
-    // The light button bar and pickers only come with the light more-info,
-    // also for on/off lights shown with the generic toggle.
-    if (computeDomain(this._config.entity) === "light") {
-      loads.push(ensureMoreInfoElements("light", [...LIGHT_TAGS]));
-    }
     if (needsHeader) {
       loads.push(
         ensureMoreInfoElements("switch", ["ha-more-info-state-header"]),
@@ -274,12 +351,21 @@ export class MoreInfoStateCard extends LitElement {
     if (name === "script") return this._script(stateObj);
     if (name === "press") return this._press(stateObj);
     if (name === "more_info") return this._moreInfo(stateObj);
+    const domain = computeDomain(stateObj.entity_id);
+    if (this._positionComposite(stateObj)) {
+      return this._positionControls(stateObj);
+    }
     const { tag } = STATE_CONTROLS[name];
     if (this._controlTag !== tag) {
       this._controlTag = tag;
       this._controlElement = document.createElement(tag);
       for (const attr of CONTROL_ATTRIBUTES[name] ?? []) {
         this._controlElement.setAttribute(attr, "");
+      }
+      if (name === "lock") {
+        this._controlElement.addEventListener("lock-service-called", () =>
+          this._setOpenState("normal"),
+        );
       }
     }
     const element = this._controlElement! as HTMLElement & {
@@ -290,22 +376,41 @@ export class MoreInfoStateCard extends LitElement {
     };
     element.stateObj = stateObj;
     element.hass = this.hass;
-    const domain = computeDomain(stateObj.entity_id);
     const isFan = domain === "fan";
     if (name === "toggle") {
       element.iconPathOn = isFan
         ? mdiFan
         : domain === "light"
           ? mdiLightbulbOn
-          : undefined;
+          : domain === "siren"
+            ? mdiVolumeHigh
+            : undefined;
       element.iconPathOff = isFan
         ? mdiFanOff
         : domain === "light"
           ? mdiLightbulbOff
-          : undefined;
+          : domain === "siren"
+            ? mdiVolumeOff
+            : undefined;
     }
     if (domain === "light" && (name === "toggle" || name === "brightness")) {
       return this._light(stateObj, element);
+    }
+    if (domain === "siren" && name === "toggle") {
+      return this._siren(stateObj, element);
+    }
+    if (domain === "lock" && name === "lock")
+      return this._lock(stateObj, element);
+    if (domain === "alarm_control_panel" && name === "alarm_modes") {
+      return ALARM_DISARM_STATES.includes(stateObj.state)
+        ? this._statusIcon(stateObj, "alarm")
+        : element;
+    }
+    if (domain === "vacuum" && name === "vacuum_status") {
+      return html`${element}${this._vacuumCommands(stateObj)}`;
+    }
+    if (domain === "lawn_mower" && name === "lawn_mower_status") {
+      return html`${element}${this._mowerCommands(stateObj)}`;
     }
     if (
       name === "fan_speed" &&
@@ -457,6 +562,513 @@ export class MoreInfoStateCard extends LitElement {
             ></ha-more-info-light-favorite-colors>`
           : nothing
       }
+    `;
+  }
+
+  /**
+   * `more-info-cover` / `more-info-valve` draw all their controls (position
+   * and tilt side by side, or the buttons) with a switch between both, when
+   * the control is picked automatically. A forced control stays alone.
+   */
+  private _positionComposite(stateObj: HassEntity): boolean {
+    const domain = computeDomain(stateObj.entity_id);
+    return (
+      (domain === "cover" || domain === "valve") &&
+      (this._config!.control ?? "auto") === "auto" &&
+      POSITION_CONTROLS.includes(this._controlName!)
+    );
+  }
+
+  private _positionControls(stateObj: HassEntity) {
+    const hass = this.hass!;
+    const domain = computeDomain(stateObj.entity_id) as "cover" | "valve";
+    const controls =
+      domain === "cover" ? coverControls(stateObj) : valveControls(stateObj);
+    const mode =
+      this._positionMode ??
+      (controls.position || controls.tilt ? "position" : "button");
+    const setMode = (value: PositionMode) => (ev: Event) => {
+      ev.stopPropagation();
+      this._positionMode = value;
+    };
+    const cover = domain === "cover";
+    let main: unknown = nothing;
+    if (mode === "position") {
+      main = html`
+        ${
+          controls.position
+            ? cover
+              ? html`<ha-state-control-cover-position
+                  .hass=${hass}
+                  .stateObj=${stateObj}
+                ></ha-state-control-cover-position>`
+              : html`<ha-state-control-valve-position
+                  .hass=${hass}
+                  .stateObj=${stateObj}
+                ></ha-state-control-valve-position>`
+            : nothing
+        }
+        ${
+          controls.tilt
+            ? html`<ha-state-control-cover-tilt-position
+                .hass=${hass}
+                .stateObj=${stateObj}
+              ></ha-state-control-cover-tilt-position>`
+            : nothing
+        }
+      `;
+    } else if (controls.buttons === "toggle") {
+      main = cover
+        ? html`<ha-state-control-cover-toggle
+            .hass=${hass}
+            .stateObj=${stateObj}
+          ></ha-state-control-cover-toggle>`
+        : html`<ha-state-control-valve-toggle
+            .hass=${hass}
+            .stateObj=${stateObj}
+          ></ha-state-control-valve-toggle>`;
+    } else if (controls.buttons === "buttons") {
+      main = cover
+        ? html`<ha-state-control-cover-buttons
+            .hass=${hass}
+            .stateObj=${stateObj}
+          ></ha-state-control-cover-buttons>`
+        : html`<ha-state-control-valve-buttons
+            .hass=${hass}
+            .stateObj=${stateObj}
+          ></ha-state-control-valve-buttons>`;
+    }
+    return html`
+      <div class="main-control">${main}</div>
+      ${
+        controls.switchMode
+          ? html`<ha-icon-button-group>
+              <ha-icon-button-toggle
+                .label=${hass.localize(
+                  `ui.dialogs.more_info_control.${domain}.switch_mode.position`,
+                )}
+                .selected=${mode === "position"}
+                .path=${mdiMenu}
+                @click=${setMode("position")}
+              ></ha-icon-button-toggle>
+              <ha-icon-button-toggle
+                .label=${hass.localize(
+                  `ui.dialogs.more_info_control.${domain}.switch_mode.button`,
+                )}
+                .selected=${mode === "button"}
+                .path=${mdiSwapVertical}
+                @click=${setMode("button")}
+              ></ha-icon-button-toggle>
+            </ha-icon-button-group>`
+          : nothing
+      }
+    `;
+  }
+
+  /** Favorite positions under the cover / valve controls. */
+  private _favoritePositions(stateObj: HassEntity) {
+    this._loadEntry();
+    if (!showFavoritePositions(stateObj, this._entry)) return nothing;
+    return computeDomain(stateObj.entity_id) === "cover"
+      ? html`<ha-more-info-cover-favorite-positions
+          .hass=${this.hass}
+          .stateObj=${stateObj}
+          .entry=${this._entry}
+          .editMode=${false}
+        ></ha-more-info-cover-favorite-positions>`
+      : html`<ha-more-info-valve-favorite-positions
+          .hass=${this.hass}
+          .stateObj=${stateObj}
+          .entry=${this._entry}
+          .editMode=${false}
+        ></ha-more-info-valve-favorite-positions>`;
+  }
+
+  /** Pulsing state icon of a jammed lock or a triggered / arming alarm. */
+  private _statusIcon(stateObj: HassEntity, kind: "lock" | "alarm") {
+    return html`
+      <div
+        class="status ${kind}"
+        style=${styleMap({ "--state-color": stateColorCss(stateObj) })}
+      >
+        <div class="icon">
+          <ha-state-icon
+            .hass=${this.hass}
+            .stateObj=${stateObj}
+          ></ha-state-icon>
+        </div>
+      </div>
+    `;
+  }
+
+  private _setOpenState(value: OpenButtonState, seconds?: number) {
+    clearTimeout(this._openTimeout);
+    this._openState = value;
+    if (seconds) {
+      this._openTimeout = setTimeout(() => {
+        this._openState = "normal";
+      }, seconds * 1000);
+    }
+  }
+
+  /** `more-info-lock.ts`: toggle (or jammed status) and the open button. */
+  private _lock(stateObj: HassEntity, element: HTMLElement) {
+    const hass = this.hass!;
+    this._loadEntry();
+    const open = (ev: Event) => {
+      ev.stopPropagation();
+      if (this._openState !== "confirm") {
+        this._setOpenState("confirm", OPEN_CONFIRM_SECONDS);
+        return;
+      }
+      callProtectedLockService(this, hass, stateObj, this._entry, "open").catch(
+        ignore,
+      );
+      this._setOpenState("done", OPEN_DONE_SECONDS);
+    };
+    return html`
+      ${stateObj.state === "jammed" ? this._statusIcon(stateObj, "lock") : element}
+      ${
+        supports(stateObj, LOCK_OPEN)
+          ? html`<div class="buttons">
+              ${
+                this._openState === "done"
+                  ? html`<p class="open-done">
+                      <ha-svg-icon .path=${mdiCheck}></ha-svg-icon>
+                      ${hass.localize("ui.card.lock.open_door_done")}
+                    </p>`
+                  : html`<ha-control-button
+                      .disabled=${!lockCanOpen(stateObj)}
+                      class="open-button ${this._openState}"
+                      style=${styleMap({
+                        "--state-color": stateColorCss(stateObj),
+                      })}
+                      @click=${open}
+                    >
+                      ${
+                        this._openState === "confirm"
+                          ? hass.localize("ui.card.lock.open_door_confirm")
+                          : hass.localize("ui.card.lock.open_door")
+                      }
+                    </ha-control-button>`
+              }
+            </div>`
+          : nothing
+      }
+    `;
+  }
+
+  /** `more-info-siren.ts`: the toggle and "More controls" (tones, volume…). */
+  private _siren(stateObj: HassEntity, element: HTMLElement) {
+    const advanced =
+      (supports(stateObj, SirenFeature.TONES) &&
+        stateObj.attributes.available_tones) ||
+      supports(stateObj, SirenFeature.VOLUME_SET | SirenFeature.DURATION);
+    const more = (ev: Event) => {
+      ev.stopPropagation();
+      runNativeMethod(
+        this.shadowRoot!,
+        "more-info-siren",
+        "_showAdvancedControlsDialog",
+        { stateObj },
+      );
+    };
+    return html`
+      ${element}
+      ${
+        advanced
+          ? html`<ha-button appearance="plain" size="s" @click=${more}>
+              ${this.hass!.localize("ui.components.siren.more_controls")}
+            </ha-button>`
+          : nothing
+      }
+    `;
+  }
+
+  private _commandButton(
+    label: string,
+    path: string,
+    disabled: boolean,
+    action: () => void,
+  ) {
+    return html`<ha-control-button
+      .label=${label}
+      .disabled=${disabled}
+      @click=${(ev: Event) => {
+        ev.stopPropagation();
+        action();
+      }}
+    >
+      <ha-svg-icon .path=${path}></ha-svg-icon>
+    </ha-control-button>`;
+  }
+
+  private _commands(buttons: unknown[]) {
+    return buttons.length
+      ? html`<div class="buttons">
+          <ha-control-button-group class="commands">
+            ${buttons}
+          </ha-control-button-group>
+        </div>`
+      : nothing;
+  }
+
+  /** Start / pause, stop, return home, locate and clean spot (`more-info-vacuum`). */
+  private _vacuumCommands(stateObj: HassEntity) {
+    const hass = this.hass!;
+    const unavailable = stateObj.state === "unavailable";
+    const has = (feature: number) => supports(stateObj, feature);
+    const call = (service: string) => () =>
+      hass.callService("vacuum", service, { entity_id: stateObj.entity_id });
+    const label = (key: string) =>
+      hass.localize(`ui.dialogs.more_info_control.vacuum.${key}`);
+    const cleaning = vacuumCleaning(stateObj);
+    // Old vacuums without the STATE / START features toggle with start_pause.
+    const legacy = !has(VacuumFeature.STATE) && !has(VacuumFeature.START);
+    const pause = cleaning && has(VacuumFeature.PAUSE);
+    const buttons: unknown[] = [];
+    if (has(VacuumFeature.START) || has(VacuumFeature.PAUSE)) {
+      buttons.push(
+        this._commandButton(
+          legacy
+            ? label("start_pause")
+            : pause
+              ? label("pause")
+              : label("start"),
+          legacy ? mdiPlayPause : pause ? mdiPause : mdiPlay,
+          // Pause is always available while cleaning, start whenever not.
+          unavailable,
+          legacy && has(VacuumFeature.PAUSE)
+            ? call("start_pause")
+            : call(cleaning ? "pause" : "start"),
+        ),
+      );
+    }
+    if (has(VacuumFeature.STOP)) {
+      buttons.push(
+        this._commandButton(
+          label("stop"),
+          mdiStop,
+          unavailable || !vacuumCanStop(stateObj),
+          call("stop"),
+        ),
+      );
+    }
+    if (has(VacuumFeature.RETURN_HOME)) {
+      buttons.push(
+        this._commandButton(
+          label("return_home"),
+          mdiHomeImportOutline,
+          unavailable || !vacuumCanReturnHome(stateObj),
+          call("return_to_base"),
+        ),
+      );
+    }
+    if (has(VacuumFeature.LOCATE)) {
+      buttons.push(
+        this._commandButton(
+          label("locate"),
+          mdiMapMarker,
+          unavailable,
+          call("locate"),
+        ),
+      );
+    }
+    if (has(VacuumFeature.CLEAN_SPOT)) {
+      buttons.push(
+        this._commandButton(
+          label("clean_spot"),
+          mdiTargetVariant,
+          unavailable,
+          call("clean_spot"),
+        ),
+      );
+    }
+    return this._commands(buttons);
+  }
+
+  /** Start / pause, stop and dock (`more-info-lawn_mower`). */
+  private _mowerCommands(stateObj: HassEntity) {
+    const hass = this.hass!;
+    const unavailable = stateObj.state === "unavailable";
+    const has = (feature: number) => supports(stateObj, feature);
+    const call = (service: string) => () =>
+      hass.callService("lawn_mower", service, {
+        entity_id: stateObj.entity_id,
+      });
+    const label = (key: string) =>
+      hass.localize(`ui.dialogs.more_info_control.lawn_mower.${key}`);
+    const pause = stateObj.state === "mowing" && has(LawnMowerFeature.PAUSE);
+    const buttons: unknown[] = [];
+    if (has(LawnMowerFeature.START_MOWING) || has(LawnMowerFeature.PAUSE)) {
+      buttons.push(
+        this._commandButton(
+          pause ? label("pause") : label("start_mowing"),
+          pause ? mdiPause : mdiPlay,
+          unavailable ||
+            (!pause &&
+              (!has(LawnMowerFeature.START_MOWING) ||
+                stateObj.state === "mowing")),
+          call(pause ? "pause" : "start_mowing"),
+        ),
+      );
+    }
+    if (has(LawnMowerFeature.STOP)) {
+      buttons.push(
+        this._commandButton(
+          label("stop"),
+          mdiStop,
+          unavailable || !mowerCanStop(stateObj),
+          call("stop"),
+        ),
+      );
+    }
+    if (has(LawnMowerFeature.DOCK)) {
+      buttons.push(
+        this._commandButton(
+          label("dock"),
+          mdiHomeImportOutline,
+          unavailable || !mowerCanDock(stateObj),
+          call("dock"),
+        ),
+      );
+    }
+    return this._commands(buttons);
+  }
+
+  /**
+   * "Cleaning: by area" button. The view only exists inside a more-info
+   * (`show-child-view`, handled by the popup); elsewhere the native more-info
+   * opens instead.
+   */
+  private _cleanAreas(stateObj: HassEntity) {
+    const hass = this.hass!;
+    const open = (ev: Event) => {
+      ev.stopPropagation();
+      let unhandled = false;
+      const mark = () => {
+        unhandled = true;
+      };
+      window.addEventListener("show-child-view", mark);
+      const ran = runNativeMethod(
+        this.shadowRoot!,
+        "more-info-vacuum",
+        "_handleCleanAreas",
+        { stateObj, _i18n: { localize: hass.localize } },
+      );
+      window.removeEventListener("show-child-view", mark);
+      if (unhandled || !ran) {
+        fireEvent(this, "hass-more-info", { entityId: stateObj.entity_id });
+      }
+    };
+    return html`
+      <ha-more-info-control-select-container>
+        <button
+          class="clean-areas-button"
+          ?disabled=${stateObj.state === "unavailable"}
+          @click=${open}
+        >
+          <div class="icon">
+            <ha-svg-icon .path=${mdiTextureBox}></ha-svg-icon>
+          </div>
+          <div class="content">
+            <p class="label">
+              ${hass.localize("ui.dialogs.more_info_control.vacuum.cleaning")}
+            </p>
+            <p class="value">
+              ${hass.localize("ui.dialogs.more_info_control.vacuum.by_area")}
+            </p>
+          </div>
+          <div class="icon"><ha-icon-next></ha-icon-next></div>
+        </button>
+      </ha-more-info-control-select-container>
+    `;
+  }
+
+  /**
+   * What the native more-info draws after its controls block: favorite
+   * positions, the jammed lock buttons, the alarm disarm button and the
+   * vacuum clean areas.
+   */
+  private _afterControls(stateObj: HassEntity) {
+    const name = this._controlName;
+    if (!name) return nothing;
+    const hass = this.hass!;
+    const domain = computeDomain(stateObj.entity_id);
+    if (this._positionComposite(stateObj)) {
+      return this._favoritePositions(stateObj);
+    }
+    if (domain === "lock" && name === "lock" && stateObj.state === "jammed") {
+      const call = (service: "lock" | "unlock") => (ev: Event) => {
+        ev.stopPropagation();
+        callProtectedLockService(
+          this,
+          hass,
+          stateObj,
+          this._entry,
+          service,
+        ).catch(ignore);
+      };
+      return html`
+        <ha-control-button-group class="jammed">
+          <ha-control-button @click=${call("unlock")}>
+            ${hass.localize("ui.card.lock.unlock")}
+          </ha-control-button>
+          <ha-control-button @click=${call("lock")}>
+            ${hass.localize("ui.card.lock.lock")}
+          </ha-control-button>
+        </ha-control-button-group>
+      `;
+    }
+    if (
+      domain === "alarm_control_panel" &&
+      name === "alarm_modes" &&
+      ALARM_DISARM_STATES.includes(stateObj.state)
+    ) {
+      this._loadEntry();
+      const disarm = (ev: Event) => {
+        ev.stopPropagation();
+        disarmAlarm(this, hass, stateObj, this._entry).catch(ignore);
+      };
+      return html`
+        <ha-control-button class="disarm" @click=${disarm}>
+          ${hass.localize("ui.card.alarm_control_panel.disarm")}
+        </ha-control-button>
+      `;
+    }
+    if (
+      domain === "vacuum" &&
+      name === "vacuum_status" &&
+      supports(stateObj, VacuumFeature.CLEAN_AREA)
+    ) {
+      return this._cleanAreas(stateObj);
+    }
+    return nothing;
+  }
+
+  /** Device battery after the time in the header (vacuum, lawn mower). */
+  private _battery(stateObj: HassEntity) {
+    const domain = computeDomain(stateObj.entity_id);
+    if (domain !== "vacuum" && domain !== "lawn_mower") return nothing;
+    const hass = this.hass!;
+    const found = deviceBattery(hass, stateObj.entity_id);
+    if (!found) return nothing;
+    const { battery, charging } = found;
+    return html`
+      <span class="battery" slot="after-time">
+        ${
+          computeDomain(battery.entity_id) === "binary_sensor"
+            ? nothing
+            : html`<span
+                >${Number(battery.state).toFixed()}${blankBeforePercent(hass)}%</span
+              >`
+        }
+        <ha-battery-icon
+          .hass=${hass}
+          .batteryStateObj=${battery}
+          .batteryChargingStateObj=${charging}
+        ></ha-battery-icon>
+      </span>
     `;
   }
 
@@ -670,7 +1282,9 @@ export class MoreInfoStateCard extends LitElement {
             ? stateObj.attributes.last_triggered || 0
             : undefined
         }
-      ></ha-more-info-state-header>
+      >
+        ${this._battery(stateObj)}
+      </ha-more-info-state-header>
     `;
   }
 
@@ -698,6 +1312,7 @@ export class MoreInfoStateCard extends LitElement {
                 >
                   ${this._control(stateObj)}
                 </div>
+                ${this._afterControls(stateObj)}
               `
             : nothing
         }
@@ -753,6 +1368,204 @@ export class MoreInfoStateCard extends LitElement {
       }
       .controls > *:not(:last-child) {
         margin-bottom: var(--ha-space-6);
+      }
+      .controls:not(:last-child) {
+        margin-bottom: var(--ha-space-6);
+      }
+      /* more-info-cover.ts / more-info-valve.ts */
+      .main-control {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+      }
+      .main-control > * {
+        margin: 0 var(--ha-space-2);
+      }
+      /* more-info-lock.ts */
+      .open-button,
+      ha-control-button-group.jammed ha-control-button {
+        font-size: var(--ha-font-size-m);
+        height: 60px;
+        --control-button-border-radius: var(--ha-border-radius-3xl);
+      }
+      .open-button {
+        width: 130px;
+        --control-button-background-color: var(--state-color);
+      }
+      .open-button.confirm {
+        --control-button-background-color: var(--warning-color);
+      }
+      .open-done {
+        line-height: 60px;
+        display: flex;
+        align-items: center;
+        flex-direction: row;
+        gap: var(--ha-space-2);
+        font-weight: var(--ha-font-weight-medium);
+        color: var(--success-color);
+        margin: 0;
+      }
+      ha-control-button-group.jammed {
+        --control-button-group-thickness: 60px;
+        width: 100%;
+        max-width: 400px;
+        margin: 0 auto;
+      }
+      /* Jammed lock / triggered alarm (more-info-lock, -alarm_control_panel) */
+      @keyframes pulse {
+        0% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 1;
+        }
+      }
+      .status {
+        display: flex;
+        align-items: center;
+        flex-direction: column;
+      }
+      .status.lock {
+        justify-content: center;
+        height: 45vh;
+        max-height: 320px;
+        min-height: 200px;
+      }
+      .status .icon {
+        position: relative;
+        --mdc-icon-size: 80px;
+        animation: pulse 1s infinite;
+        color: var(--state-color);
+        border-radius: var(--ha-border-radius-circle);
+        width: 144px;
+        height: 144px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .status .icon::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        border-radius: var(--ha-border-radius-circle);
+        background-color: var(--state-color);
+        transition: background-color 180ms ease-in-out;
+        opacity: 0.2;
+      }
+      ha-control-button.disarm {
+        height: 60px;
+        min-width: 130px;
+        max-width: 200px;
+        margin: 0 auto;
+        --control-button-border-radius: var(--ha-border-radius-3xl);
+      }
+      /* more-info-vacuum.ts / more-info-lawn_mower.ts */
+      .battery {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--ha-space-1);
+        font-size: var(--ha-font-size-m);
+        color: var(--secondary-text-color);
+        --mdc-icon-size: 18px;
+      }
+      .battery span {
+        height: var(--mdc-icon-size);
+        line-height: var(--mdc-icon-size);
+      }
+      ha-control-button-group.commands {
+        --control-button-group-thickness: 48px;
+        justify-content: center;
+      }
+      ha-control-button-group.commands ha-control-button {
+        flex: 0 0 auto;
+        width: var(--control-button-group-thickness);
+        --control-button-border-radius: var(--ha-border-radius-lg);
+      }
+      .commands ha-control-button ha-svg-icon {
+        z-index: auto;
+        margin-right: 0;
+      }
+      .clean-areas-button {
+        --mdc-icon-size: 20px;
+        position: relative;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 10px;
+        width: auto;
+        max-width: 100%;
+        height: 48px;
+        padding: 6px 10px;
+        border: none;
+        border-radius: var(--ha-border-radius-lg);
+        background: none;
+        color: var(--primary-text-color);
+        font-family: inherit;
+        font-size: var(--ha-font-size-m);
+        font-weight: var(--ha-font-weight-normal);
+        line-height: 1.4;
+        letter-spacing: 0.25px;
+        text-align: left;
+        cursor: pointer;
+        overflow: hidden;
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+        z-index: 0;
+        transition: box-shadow 180ms ease-in-out;
+      }
+      .clean-areas-button::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-color: var(--disabled-color);
+        opacity: 0.2;
+        transition:
+          background-color 180ms ease-in-out,
+          opacity 180ms ease-in-out;
+      }
+      .clean-areas-button:hover::before {
+        background-color: var(--ha-color-on-neutral-quiet);
+      }
+      .clean-areas-button:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px var(--secondary-text-color);
+      }
+      .clean-areas-button[disabled] {
+        cursor: not-allowed;
+        color: var(--disabled-color);
+      }
+      .clean-areas-button .icon {
+        display: flex;
+        --mdc-icon-size: 20px;
+      }
+      .clean-areas-button .content {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+      }
+      .clean-areas-button .content p {
+        margin: 0;
+        width: 100%;
+        overflow: hidden;
+        white-space: nowrap;
+        text-overflow: ellipsis;
+      }
+      .clean-areas-button .label {
+        font-size: var(--ha-font-size-s);
+        letter-spacing: 0.4px;
+      }
+      .clean-areas-button .value {
+        font-size: var(--ha-font-size-m);
       }
       /* ha-more-info-state-header .state */
       /* more-info-control-style.ts .buttons (fan power button) */

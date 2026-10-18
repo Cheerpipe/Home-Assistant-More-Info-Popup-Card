@@ -172,6 +172,15 @@ declare global {
   interface Window {
     loadCardHelpers?: () => Promise<{
       importMoreInfoControl?: (type: string) => void;
+      showEnterCodeDialog?: (
+        element: HTMLElement,
+        params: {
+          codeFormat: "text" | "number";
+          codePattern?: string;
+          title?: string;
+          submitText?: string;
+        },
+      ) => Promise<string | null>;
     }>;
     customCards?: {
       type: string;

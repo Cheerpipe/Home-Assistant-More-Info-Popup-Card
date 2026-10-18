@@ -127,3 +127,35 @@ export const isSupportedHaVersion = (version: string | undefined): boolean => {
     (year === MIN_HA_VERSION[0] && month >= MIN_HA_VERSION[1])
   );
 };
+
+/**
+ * Runs a method of a native more-info control (`more-info-<domain>`) whose
+ * only job is to fire an event that opens a lazily imported view or dialog
+ * (siren advanced controls, vacuum clean areas): only that element knows how
+ * to import it. The method runs on a hidden stand-in carrying `props`, placed
+ * inside `host` so the event bubbles from where the user clicked.
+ * Returns false when the method is gone (frontend refactor).
+ */
+export const runNativeMethod = (
+  host: ShadowRoot,
+  tag: string,
+  method: string,
+  props: Record<string, unknown>,
+): boolean => {
+  const fn = (
+    customElements.get(tag)?.prototype as Record<string, unknown> | undefined
+  )?.[method];
+  if (typeof fn !== "function") {
+    console.warn("[more-info-popup-card] Missing", `${tag}.${method}`);
+    return false;
+  }
+  const standIn = Object.assign(document.createElement("span"), props);
+  standIn.hidden = true;
+  host.appendChild(standIn);
+  try {
+    fn.call(standIn);
+  } finally {
+    standIn.remove();
+  }
+  return true;
+};

@@ -36,7 +36,7 @@ Lights get the whole native light control: the brightness slider, the button bar
 
 ### toggle
 
-Switches, input booleans, sirens. Lights without brightness use the lightbulb icons.
+Switches, input booleans, sirens. Lights without brightness use the lightbulb icons; sirens get the volume icons and, when they have tones, volume or duration, the native More controls dialog.
 
 ![toggle](images/state_toggle.png)
 
@@ -75,7 +75,7 @@ entity: fan.living_room_fan
 
 ### position
 
-Covers with position. Header: state · position.
+Covers with position, like more-info: position and tilt sliders side by side, the switch to the open / stop / close buttons and the favorite positions. Open / close-only covers get the toggle. Header: state · position.
 
 ![position](images/state_position.png)
 
@@ -88,7 +88,7 @@ entity: cover.hall_window
 
 ### tilt
 
-Cover tilt position.
+Cover tilt position alone: a forced control shows only that control, without the mode switch or favorites.
 
 ![tilt](images/state_tilt.png)
 
@@ -102,7 +102,7 @@ control: tilt
 
 ### cover_buttons
 
-Open / stop / close buttons.
+Open / stop / close buttons, forced here on an open / close-only cover (which gets the toggle by default).
 
 ![cover_buttons](images/state_cover_buttons.png)
 
@@ -111,11 +111,12 @@ Open / stop / close buttons.
 ```yaml
 type: custom:more-info-state-card
 entity: cover.garage_door
+control: cover_buttons
 ```
 
 ### valve_position
 
-Valves with position.
+Valves with position, with the switch to the buttons and the favorite positions like more-info.
 
 ![valve_position](images/state_valve_position.png)
 
@@ -128,7 +129,7 @@ entity: valve.back_garden
 
 ### valve_toggle
 
-Valves without position.
+Open / close valves without position (with stop they get `valve_buttons`).
 
 ![valve_toggle](images/state_valve_toggle.png)
 
@@ -141,7 +142,7 @@ entity: valve.front_garden
 
 ### lock
 
-Lock toggle.
+Lock toggle. Locks that open get the Open button (tap twice to confirm); a jammed lock shows its pulsing icon with Unlock / Lock. Codes are asked with the native code dialog unless the entity has a default code.
 
 ![lock](images/state_lock.png)
 
@@ -154,7 +155,7 @@ entity: lock.front_door
 
 ### alarm_modes
 
-Alarm panel modes.
+Alarm panel modes. While arming, pending or triggered: the pulsing state icon and the Disarm button (native code dialog).
 
 ![alarm_modes](images/state_alarm.png)
 
@@ -220,7 +221,7 @@ entity: water_heater.demo_water_heater_celsius
 
 ### vacuum_status
 
-Vacuum illustration (animated while cleaning).
+Vacuum illustration (animated while cleaning), the command buttons (start / pause, stop, return home, locate, clean spot) and Cleaning by area, which opens the native view inside the popup. The header shows the status and the device battery. The fan speed is left to the controls card. Lawn mowers get start / pause, stop and dock.
 
 ![vacuum_status](images/state_vacuum.png)
 
