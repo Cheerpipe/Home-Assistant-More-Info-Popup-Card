@@ -8,6 +8,7 @@
 import { mdiClose, mdiDockWindow, mdiEyeOff } from "@mdi/js";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
+import { classMap } from "lit/directives/class-map.js";
 import { styleMap } from "lit/directives/style-map.js";
 import {
   CARD_TAG,
@@ -27,6 +28,7 @@ import {
   isSupportedHaVersion,
   MIN_HA_VERSION,
 } from "./ha/internals";
+import { setSectionAlign } from "./grid-align";
 import { contentStyles, headerStyles } from "./ha/styles";
 import type {
   HomeAssistant,
@@ -272,6 +274,7 @@ export class MoreInfoPopupCard
       this._previewSectionKey = key;
       this._previewSection.config = sectionConfig;
     }
+    setSectionAlign(this._previewSection, config.horizontal_align);
     const info = computeHeaderInfo(hass, config, {
       entityId: config.entity,
       view: "root",
@@ -288,7 +291,7 @@ export class MoreInfoPopupCard
           ${renderTitle(hass, info, "title")}
         </ha-dialog-header>
         <div
-          class="body"
+          class=${classMap({ body: true, borderless: !config.card_borders })}
           style=${styleMap({ "--column-span": String(config.column_span) })}
         >
           ${this._previewSection}

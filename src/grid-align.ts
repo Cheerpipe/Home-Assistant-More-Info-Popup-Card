@@ -32,6 +32,14 @@ const SHEET_CSS = `
   :host([${ATTR}]) .card.full-width {
     width: 100%;
   }
+  /* "Add card" button of the editor preview (3 columns wide) */
+  :host([${ATTR}]) .add {
+    flex: 0 0 auto;
+    width: calc(
+      (100% + var(--column-gap)) * 3 / var(--grid-column-count) -
+        var(--column-gap)
+    );
+  }
 `;
 
 let sheet: CSSStyleSheet | undefined;

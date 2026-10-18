@@ -20,6 +20,7 @@ import {
 } from "@mdi/js";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
+import { classMap } from "lit/directives/class-map.js";
 import { styleMap } from "lit/directives/style-map.js";
 import {
   DEFAULTS,
@@ -29,6 +30,7 @@ import {
   validateConfig,
   type PopupCardConfig,
 } from "../config";
+import { setSectionAlign } from "../grid-align";
 import { fireEvent } from "../ha/fire-event";
 import { ensureEditorElements } from "../ha/internals";
 import type {
@@ -199,6 +201,10 @@ export class MoreInfoPopupCardEditor extends LitElement {
     this._section ??= document.createElement("hui-section") as SectionElement;
     const section = this._section;
     section.hass = this.hass;
+    setSectionAlign(
+      section,
+      this._config?.horizontal_align ?? DEFAULTS.horizontal_align,
+    );
     const key = JSON.stringify(sectionConfig);
     if (key === this._sectionKey) return;
     this._sectionKey = key;
@@ -446,7 +452,10 @@ export class MoreInfoPopupCardEditor extends LitElement {
           : html`<p class="empty">${localize(hass, "editor.empty")}</p>`
       }
       <div
-        class="grid"
+        class=${classMap({
+          grid: true,
+          borderless: config.card_borders === false,
+        })}
         style=${styleMap({ "--column-span": String(config.column_span ?? 1) })}
         @ll-edit-card=${this._interceptEdit}
         @ll-duplicate-card=${this._interceptEdit}
@@ -554,6 +563,11 @@ export class MoreInfoPopupCardEditor extends LitElement {
     .grid {
       display: block;
       padding: var(--ha-space-2) 0;
+    }
+    /* card_borders: false, as in the popup */
+    .grid.borderless {
+      --ha-card-border-width: 0;
+      --ha-card-box-shadow: none;
     }
     .sub-header {
       display: flex;

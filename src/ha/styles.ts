@@ -200,6 +200,11 @@ export const contentStyles = css`
     display: block;
     width: 100%;
   }
+  /* card_borders: false */
+  .body.borderless {
+    --ha-card-border-width: 0;
+    --ha-card-box-shadow: none;
+  }
   ha-more-info-history-and-logbook {
     padding: var(--ha-space-2) 0 var(--ha-space-6) 0;
     display: block;

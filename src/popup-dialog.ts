@@ -1061,11 +1061,6 @@ export class MoreInfoPopupDialog extends LitElement {
       .body.align-bottom {
         justify-content: flex-end;
       }
-      /* card_borders: false */
-      .body.borderless {
-        --ha-card-border-width: 0;
-        --ha-card-box-shadow: none;
-      }
       /* top-sheet.ts: the safe area moves to the top edge. */
       ha-bottom-sheet.top {
         --ha-bottom-sheet-padding: var(--safe-area-inset-top)
