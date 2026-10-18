@@ -63,6 +63,7 @@ import { localize } from "./localize/localize";
 import { computeHeaderInfo, renderTitle, type Frame } from "./popup-header";
 import { setActivePopup } from "./state";
 import { POPUP_FILL_EVENT } from "./controls/state-card";
+import { setSectionAlign } from "./grid-align";
 import { applyUix, uixConfigOf } from "./ha/uix";
 import {
   prepareTopSheet,
@@ -369,6 +370,7 @@ export class MoreInfoPopupDialog extends LitElement {
       this._sectionConfigKey.set(section, key);
       section.config = sectionConfig;
     }
+    setSectionAlign(section, config.horizontal_align);
     return section;
   }
 
@@ -945,11 +947,16 @@ export class MoreInfoPopupDialog extends LitElement {
     // Child views opened by the cards (vacuum clean areas) cover the grid,
     // which stays rendered so it keeps its state.
     if (frame.view === "root") {
+      const config = this._config!;
       return html`
         <div
-          class="body"
+          class=${classMap({
+            body: true,
+            [`align-${config.vertical_align}`]: true,
+            borderless: !config.card_borders,
+          })}
           ?hidden=${frame.children.length > 0}
-          style=${styleMap({ "--column-span": String(this._config!.column_span) })}
+          style=${styleMap({ "--column-span": String(config.column_span) })}
         >
           ${this._section}
         </div>
@@ -1038,6 +1045,26 @@ export class MoreInfoPopupDialog extends LitElement {
       }
       [hidden] {
         display: none !important;
+      }
+      /* vertical_align: the body fills the free space of a taller popup. */
+      .content:has(> .body:is(.align-center, .align-bottom):not([hidden])) {
+        display: flex;
+        flex-direction: column;
+      }
+      .body.align-center,
+      .body.align-bottom {
+        flex: 1 0 auto;
+      }
+      .body.align-center {
+        justify-content: center;
+      }
+      .body.align-bottom {
+        justify-content: flex-end;
+      }
+      /* card_borders: false */
+      .body.borderless {
+        --ha-card-border-width: 0;
+        --ha-card-box-shadow: none;
       }
       /* top-sheet.ts: the safe area moves to the top edge. */
       ha-bottom-sheet.top {

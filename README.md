@@ -88,6 +88,9 @@ More examples for every option: [docs/popup-card.md](docs/popup-card.md).
 | `width`               | `medium` | `small`, `medium`, `large`, `full` or `custom` (+ `custom_width`, e.g. `720px`).                                                              |
 | `height`              | `auto`   | `auto` or `custom` (+ `min_height` / `max_height`, e.g. `60vh`).                                                                              |
 | `column_span`         | `1`      | Grid width in sections: `1` = 12 columns, `2` = 24 columns (opens a large dialog).                                                            |
+| `vertical_align`      | `top`    | Cards in a popup taller than its content: `top`, `center` or `bottom`.                                                                        |
+| `horizontal_align`    | `left`   | Rows narrower than the grid (cards with fewer `grid_options.columns`): `left`, `center` or `right`.                                           |
+| `card_borders`        | `true`   | `false` removes the border and shadow of the cards inside the popup.                                                                          |
 | `show_header_actions` | `true`   | Show history, settings and menu when an entity is set.                                                                                        |
 | `replace_more_info`   | `false`  | Show this popup instead of the entity's native more-info on this view.                                                                        |
 | `match`               |          | With `replace_more_info`: also replace the more-info of these entities. See [One popup for many entities](#one-popup-for-many-entities).      |

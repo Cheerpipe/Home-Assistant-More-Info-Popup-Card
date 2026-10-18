@@ -48,6 +48,17 @@ export const en = {
   "editor.column_span": "Grid width (sections)",
   "editor.column_span_helper":
     "1 = 12 columns like a dashboard section; 2 = 24 columns.",
+  "editor.vertical_align": "Vertical alignment",
+  "editor.vertical_align.top": "Top",
+  "editor.vertical_align.center": "Center",
+  "editor.vertical_align.bottom": "Bottom",
+  "editor.horizontal_align": "Horizontal alignment",
+  "editor.horizontal_align.left": "Left",
+  "editor.horizontal_align.center": "Center",
+  "editor.horizontal_align.right": "Right",
+  "editor.horizontal_align_helper":
+    "For rows narrower than the grid (cards with fewer columns in Layout).",
+  "editor.card_borders": "Show card borders",
   "editor.show_header_actions": "Show history, settings and menu",
   "editor.replace_more_info": "Replace the entity's more-info",
   "editor.replace_more_info_helper":

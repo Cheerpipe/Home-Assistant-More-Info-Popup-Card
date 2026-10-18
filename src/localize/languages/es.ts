@@ -50,6 +50,17 @@ export const es: Record<keyof typeof en, string> = {
   "editor.column_span": "Ancho de la rejilla (secciones)",
   "editor.column_span_helper":
     "1 = 12 columnas como una sección del dashboard; 2 = 24 columnas.",
+  "editor.vertical_align": "Alineación vertical",
+  "editor.vertical_align.top": "Arriba",
+  "editor.vertical_align.center": "Centro",
+  "editor.vertical_align.bottom": "Abajo",
+  "editor.horizontal_align": "Alineación horizontal",
+  "editor.horizontal_align.left": "Izquierda",
+  "editor.horizontal_align.center": "Centro",
+  "editor.horizontal_align.right": "Derecha",
+  "editor.horizontal_align_helper":
+    "Para filas más estrechas que la rejilla (tarjetas con menos columnas en Diseño).",
+  "editor.card_borders": "Mostrar bordes de las tarjetas",
   "editor.show_header_actions": "Mostrar historial, ajustes y menú",
   "editor.replace_more_info": "Reemplazar el more-info de la entidad",
   "editor.replace_more_info_helper":

@@ -185,6 +185,22 @@ export const PAGES = [
               ],
             },
           ),
+          popup(
+            "align_center",
+            "Centered cards without borders",
+            "`vertical_align: center` and `horizontal_align: center` place the cards in the middle of a popup taller than its content (a custom height, or the full-height bottom sheet on a phone); `horizontal_align` affects rows narrower than the grid. `card_borders: false` removes the border and shadow of the cards, like the native more-info.",
+            {
+              name: "Bedroom",
+              height: "custom",
+              min_height: "50vh",
+              vertical_align: "center",
+              horizontal_align: "center",
+              card_borders: false,
+              cards: [
+                tile("light.bed_light", { grid_options: { columns: 6 } }),
+              ],
+            },
+          ),
         ],
       },
       {

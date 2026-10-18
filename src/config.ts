@@ -10,6 +10,8 @@ export type PopupMode = "auto" | "dialog" | "bottom_sheet" | "top_sheet";
 export type PopupWidth = "small" | "medium" | "large" | "full" | "custom";
 export type PopupHeight = "auto" | "custom";
 export type NestedMoreInfo = "inline" | "dialog";
+export type VerticalAlign = "top" | "center" | "bottom";
+export type HorizontalAlign = "left" | "center" | "right";
 
 export interface PopupCardConfig extends LovelaceCardConfig {
   type: `custom:${typeof CARD_TYPE}`;
@@ -26,6 +28,12 @@ export interface PopupCardConfig extends LovelaceCardConfig {
   min_height?: string;
   max_height?: string;
   column_span?: number;
+  /** Position of the cards in the free space of a taller popup. */
+  vertical_align?: VerticalAlign;
+  /** Position of rows that do not fill every grid column. */
+  horizontal_align?: HorizontalAlign;
+  /** false removes the border and shadow of the cards inside the popup. */
+  card_borders?: boolean;
   show_header_actions?: boolean;
   replace_more_info?: boolean;
   /** Template popup: the other entities whose more-info it replaces. */
@@ -63,6 +71,9 @@ export const DEFAULTS = {
   width: "medium",
   height: "auto",
   column_span: 1,
+  vertical_align: "top",
+  horizontal_align: "left",
+  card_borders: true,
   show_header_actions: true,
   replace_more_info: false,
   nested_more_info: "inline",
@@ -75,6 +86,8 @@ const MODES: PopupMode[] = ["auto", "dialog", "bottom_sheet", "top_sheet"];
 const WIDTHS: PopupWidth[] = ["small", "medium", "large", "full", "custom"];
 const HEIGHTS: PopupHeight[] = ["auto", "custom"];
 const NESTED: NestedMoreInfo[] = ["inline", "dialog"];
+const VERTICAL: VerticalAlign[] = ["top", "center", "bottom"];
+const HORIZONTAL: HorizontalAlign[] = ["left", "center", "right"];
 
 export const POPUP_ID_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 
@@ -168,6 +181,11 @@ export const validateConfig = (config: unknown): PopupCardConfig => {
   assertOneOf("width", c.width, WIDTHS);
   assertOneOf("height", c.height, HEIGHTS);
   assertOneOf("nested_more_info", c.nested_more_info, NESTED);
+  assertOneOf("vertical_align", c.vertical_align, VERTICAL);
+  assertOneOf("horizontal_align", c.horizontal_align, HORIZONTAL);
+  if (c.card_borders !== undefined && typeof c.card_borders !== "boolean") {
+    throw new Error('"card_borders" must be true or false');
+  }
   assertLength("custom_width", c.custom_width);
   assertLength("min_height", c.min_height);
   assertLength("max_height", c.max_height);

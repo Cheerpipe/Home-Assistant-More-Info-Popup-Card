@@ -16,6 +16,7 @@
   - [Large with a 24-column grid](#large-with-a-24-column-grid)
   - [Custom width](#custom-width)
   - [Custom height](#custom-height)
+  - [Centered cards without borders](#centered-cards-without-borders)
 - [Presentation](#presentation)
   - [Bottom sheet on desktop](#bottom-sheet-on-desktop)
   - [Automatic on a phone](#automatic-on-a-phone)
@@ -223,6 +224,26 @@ cards:
     entity: light.bed_light
   - type: tile
     entity: light.office_rgbw_lights
+```
+
+### Centered cards without borders
+
+`vertical_align: center` and `horizontal_align: center` place the cards in the middle of a popup taller than its content (a custom height, or the full-height bottom sheet on a phone); `horizontal_align` affects rows narrower than the grid. `card_borders: false` removes the border and shadow of the cards, like the native more-info.
+
+```yaml
+type: custom:more-info-popup-card
+popup_id: align_center
+name: Bedroom
+height: custom
+min_height: "50vh"
+vertical_align: center
+horizontal_align: center
+card_borders: false
+cards:
+  - type: tile
+    entity: light.bed_light
+    grid_options:
+      columns: 6
 ```
 
 ## Presentation

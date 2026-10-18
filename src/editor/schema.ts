@@ -206,6 +206,39 @@ export const buildSchema = (
           },
         },
       },
+      {
+        name: "",
+        type: "grid",
+        schema: [
+          {
+            name: "vertical_align",
+            selector: {
+              select: {
+                mode: "dropdown",
+                options: options(hass, "vertical_align", [
+                  "top",
+                  "center",
+                  "bottom",
+                ]),
+              },
+            },
+          },
+          {
+            name: "horizontal_align",
+            selector: {
+              select: {
+                mode: "dropdown",
+                options: options(hass, "horizontal_align", [
+                  "left",
+                  "center",
+                  "right",
+                ]),
+              },
+            },
+          },
+        ],
+      },
+      { name: "card_borders", selector: { boolean: {} } },
       ...(config.entity || config.match
         ? [{ name: "show_header_actions", selector: { boolean: {} } }]
         : []),
@@ -254,6 +287,7 @@ const HELPERS: Partial<Record<string, TranslationKey>> = {
   min_height: "editor.length_helper",
   max_height: "editor.length_helper",
   column_span: "editor.column_span_helper",
+  horizontal_align: "editor.horizontal_align_helper",
   replace_more_info: "editor.replace_more_info_helper",
   entity_glob: "editor.entity_glob_helper",
   entities: "editor.match_entities_helper",
@@ -272,6 +306,9 @@ const LABELS: Partial<Record<string, TranslationKey>> = {
   min_height: "editor.min_height",
   max_height: "editor.max_height",
   column_span: "editor.column_span",
+  vertical_align: "editor.vertical_align",
+  horizontal_align: "editor.horizontal_align",
+  card_borders: "editor.card_borders",
   show_header_actions: "editor.show_header_actions",
   replace_more_info: "editor.replace_more_info",
   integration: "editor.match_integration",
