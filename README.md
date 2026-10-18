@@ -77,27 +77,29 @@ cards:
 
 More examples for every option: [docs/popup-card.md](docs/popup-card.md).
 
-| Option                | Default  | Description                                                                                                                                   |
-| --------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| `popup_id`            | required | Lowercase letters, digits, `_` and `-`. Used as `#popup_id`.                                                                                  |
-| `entity`              |          | Enables history, settings and the ⋮ menu (device info, related, details, add to…).                                                            |
-| `name`                | entity   | Title of the popup.                                                                                                                           |
-| `icon`                |          | Icon of the placeholder shown in edit mode.                                                                                                   |
-| `breadcrumb`          | `auto`   | Text above the title: `auto` (area ▸ device), `none` or any text.                                                                             |
-| `mode`                | `auto`   | `auto` (dialog on desktop, bottom sheet on mobile, like HA), `dialog`, `bottom_sheet` or `top_sheet` (drops from the top; swipe up to close). |
-| `width`               | `medium` | `small`, `medium`, `large`, `full` or `custom` (+ `custom_width`, e.g. `720px`).                                                              |
-| `height`              | `auto`   | `auto` or `custom` (+ `min_height` / `max_height`, e.g. `60vh`).                                                                              |
-| `column_span`         | `1`      | Grid width in sections: `1` = 12 columns, `2` = 24 columns (opens a large dialog).                                                            |
-| `vertical_align`      | `top`    | Cards in a popup taller than its content: `top`, `center` or `bottom`.                                                                        |
-| `horizontal_align`    | `left`   | Rows narrower than the grid (cards with fewer `grid_options.columns`): `left`, `center` or `right`.                                           |
-| `card_borders`        | `true`   | `false` removes the border and shadow of the cards inside the popup.                                                                          |
-| `show_header_actions` | `true`   | Show history, settings and menu when an entity is set.                                                                                        |
-| `replace_more_info`   | `false`  | Show this popup instead of the entity's native more-info on this view.                                                                        |
-| `match`               |          | With `replace_more_info`: also replace the more-info of these entities. See [One popup for many entities](#one-popup-for-many-entities).      |
-| `nested_more_info`    | `inline` | Entities opened from inside the popup: `inline` (navigate inside, like HA) or `dialog`.                                                       |
-| `dismissable`         | `true`   | Close with Esc, clicking outside or swiping down.                                                                                             |
-| `auto_close`          | `0`      | Seconds of inactivity before closing (`0` = never).                                                                                           |
-| `keep_alive`          | `false`  | Keep the cards loaded while closed for a faster reopen.                                                                                       |
+| Option                | Default  | Description                                                                                                                                                                                               |
+| --------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `popup_id`            | required | Lowercase letters, digits, `_` and `-`. Used as `#popup_id`.                                                                                                                                              |
+| `entity`              |          | Enables history, settings and the ⋮ menu (device info, related, details, add to…).                                                                                                                        |
+| `name`                | entity   | Title of the popup.                                                                                                                                                                                       |
+| `icon`                |          | Icon of the placeholder shown in edit mode.                                                                                                                                                               |
+| `breadcrumb`          | `auto`   | Text above the title: `auto` (area ▸ device), `none` or any text.                                                                                                                                         |
+| `mode`                | `auto`   | `auto` (dialog on desktop, bottom sheet on mobile, like HA), `dialog`, `bottom_sheet` or `top_sheet` (drops from the top; swipe up to close).                                                             |
+| `width`               | `medium` | `small`, `medium`, `large`, `full` or `custom` (+ `custom_width`, e.g. `720px`).                                                                                                                          |
+| `height`              | `auto`   | `auto` or `custom` (+ `min_height` / `max_height`, e.g. `60vh`).                                                                                                                                          |
+| `column_span`         | `1`      | Grid width in sections: `1` = 12 columns, `2` = 24 columns (opens a large dialog).                                                                                                                        |
+| `layout`              | `single` | `single` (one grid) or `zones`: a pinned `header`, the main `cards` taking the free height (they scroll) and a pinned `footer`. See [Header, main and footer](docs/popup-card.md#header-main-and-footer). |
+| `header` / `footer`   |          | With `layout: zones`: `cards`, `vertical_align`, `horizontal_align` and `min_height` of that zone.                                                                                                        |
+| `vertical_align`      | `top`    | Cards (the main zone) in a popup taller than its content: `top`, `center` or `bottom`.                                                                                                                    |
+| `horizontal_align`    | `left`   | Rows narrower than the grid (cards with fewer `grid_options.columns`): `left`, `center` or `right`.                                                                                                       |
+| `card_borders`        | `true`   | `false` removes the border and shadow of the cards inside the popup.                                                                                                                                      |
+| `show_header_actions` | `true`   | Show history, settings and menu when an entity is set.                                                                                                                                                    |
+| `replace_more_info`   | `false`  | Show this popup instead of the entity's native more-info on this view.                                                                                                                                    |
+| `match`               |          | With `replace_more_info`: also replace the more-info of these entities. See [One popup for many entities](#one-popup-for-many-entities).                                                                  |
+| `nested_more_info`    | `inline` | Entities opened from inside the popup: `inline` (navigate inside, like HA) or `dialog`.                                                                                                                   |
+| `dismissable`         | `true`   | Close with Esc, clicking outside or swiping down.                                                                                                                                                         |
+| `auto_close`          | `0`      | Seconds of inactivity before closing (`0` = never).                                                                                                                                                       |
+| `keep_alive`          | `false`  | Keep the cards loaded while closed for a faster reopen.                                                                                                                                                   |
 
 ### One popup for many entities
 

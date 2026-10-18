@@ -3,7 +3,7 @@
  * set of entities (`match:`), with `entity: this` in its cards replaced by
  * the entity that was opened.
  */
-import type { ResolvedPopupConfig } from "./config";
+import type { PopupZoneConfig, ResolvedPopupConfig } from "./config";
 import type { HomeAssistant, LovelaceCardConfig } from "./ha/types";
 
 export interface EntityMatch {
@@ -124,13 +124,15 @@ export const bindEntity = (
   config: ResolvedPopupConfig,
   entityId: string | undefined,
 ): ResolvedPopupConfig => {
-  if (!entityId || entityId === config.entity) {
-    return { ...config, cards: resolveThisEntity(config.cards, config.entity) };
-  }
+  const entity = entityId ?? config.entity;
+  const zone = (z: PopupZoneConfig | undefined) =>
+    z?.cards ? { ...z, cards: resolveThisEntity(z.cards, entity) } : z;
   return {
     ...config,
-    entity: entityId,
-    cards: resolveThisEntity(config.cards, entityId),
+    entity,
+    cards: resolveThisEntity(config.cards, entity),
+    header: zone(config.header),
+    footer: zone(config.footer),
   };
 };
 

@@ -201,6 +201,39 @@ export const PAGES = [
               ],
             },
           ),
+          popup(
+            "zones",
+            "Header, main and footer",
+            "`layout: zones` splits the popup in three: the `header` and `footer` stay pinned at the top and bottom, and the main `cards` take the free height between them (and scroll when they do not fit). Each zone has its own `vertical_align` and `horizontal_align`; the header and footer also take a `min_height`. The main zone uses the top-level options. Give the popup a height (or open it as the full-height bottom sheet on a phone) so the main zone has room to fill. In the visual editor, the zones are drawn as a frame, and cards can be dragged between them.",
+            {
+              name: "Bed light",
+              entity: "light.bed_light",
+              height: "custom",
+              min_height: "70vh",
+              layout: "zones",
+              card_borders: false,
+              vertical_align: "center",
+              header: {
+                horizontal_align: "right",
+                cards: [
+                  tile("switch.decorative_lights", {
+                    grid_options: { columns: 6 },
+                  }),
+                ],
+              },
+              cards: [state("light.bed_light")],
+              footer: {
+                cards: [
+                  tile("light.kitchen_lights", {
+                    grid_options: { columns: 6 },
+                  }),
+                  tile("light.ceiling_lights", {
+                    grid_options: { columns: 6 },
+                  }),
+                ],
+              },
+            },
+          ),
         ],
       },
       {

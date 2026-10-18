@@ -8,8 +8,6 @@
 import { mdiClose, mdiDockWindow, mdiEyeOff } from "@mdi/js";
 import { css, html, LitElement, nothing, type PropertyValues } from "lit";
 import { property, state } from "lit/decorators.js";
-import { classMap } from "lit/directives/class-map.js";
-import { styleMap } from "lit/directives/style-map.js";
 import {
   CARD_TAG,
   CARD_TYPE,
@@ -28,13 +26,12 @@ import {
   isSupportedHaVersion,
   MIN_HA_VERSION,
 } from "./ha/internals";
-import { setSectionAlign } from "./grid-align";
+import { allCards, renderBody, zoneStyles, ZoneSections } from "./zones";
 import { contentStyles, headerStyles } from "./ha/styles";
 import type {
   HomeAssistant,
   LovelaceCard,
   LovelaceGridOptions,
-  LovelaceSectionConfig,
 } from "./ha/types";
 import { localize } from "./localize/localize";
 import "./popup-dialog";
@@ -47,11 +44,6 @@ import { CONTROLS_CARD_TYPE } from "./controls/controls-card";
 import { STATE_CARD_TYPE } from "./controls/state-card";
 
 declare const __VERSION__: string;
-
-type SectionElement = HTMLElement & {
-  hass?: HomeAssistant;
-  config?: LovelaceSectionConfig;
-};
 
 type Surface = "hidden" | "placeholder" | "preview";
 
@@ -92,9 +84,7 @@ export class MoreInfoPopupCard
 
   private _preview = false;
 
-  private _previewSection?: SectionElement;
-
-  private _previewSectionKey?: string;
+  private _previewZones?: ZoneSections;
 
   public get preview(): boolean {
     return this._preview;
@@ -189,8 +179,8 @@ export class MoreInfoPopupCard
   }
 
   protected override willUpdate(changed: PropertyValues<this>): void {
-    if (changed.has("hass") && this._previewSection) {
-      this._previewSection.hass = this.hass;
+    if (changed.has("hass") && this._previewZones) {
+      this._previewZones.hass = this.hass;
     }
   }
 
@@ -214,7 +204,7 @@ export class MoreInfoPopupCard
     const stateObj = config.entity ? hass.states[config.entity] : undefined;
     const name =
       config.name ?? (stateObj ? computeStateName(stateObj) : config.popup_id);
-    const count = config.cards.length;
+    const count = allCards(config).length;
     const cards =
       count === 1
         ? localize(hass, "card.cards_count_one")
@@ -260,21 +250,8 @@ export class MoreInfoPopupCard
       template,
       template.entity ?? matchingEntities(template, hass)[0],
     );
-    const sectionConfig: LovelaceSectionConfig = {
-      type: "grid",
-      column_span: config.column_span,
-      cards: config.cards,
-    };
-    const key = JSON.stringify(sectionConfig);
-    this._previewSection ??= document.createElement(
-      "hui-section",
-    ) as SectionElement;
-    this._previewSection.hass = hass;
-    if (this._previewSectionKey !== key) {
-      this._previewSectionKey = key;
-      this._previewSection.config = sectionConfig;
-    }
-    setSectionAlign(this._previewSection, config.horizontal_align);
+    this._previewZones ??= new ZoneSections();
+    const sections = this._previewZones.update(config, hass);
     const info = computeHeaderInfo(hass, config, {
       entityId: config.entity,
       view: "root",
@@ -290,12 +267,7 @@ export class MoreInfoPopupCard
           ></ha-icon-button>
           ${renderTitle(hass, info, "title")}
         </ha-dialog-header>
-        <div
-          class=${classMap({ body: true, borderless: !config.card_borders })}
-          style=${styleMap({ "--column-span": String(config.column_span) })}
-        >
-          ${this._previewSection}
-        </div>
+        ${renderBody(config, sections)}
       </div>
     `;
   }
@@ -303,6 +275,7 @@ export class MoreInfoPopupCard
   static override styles = [
     headerStyles,
     contentStyles,
+    zoneStyles,
     css`
       :host {
         display: block;

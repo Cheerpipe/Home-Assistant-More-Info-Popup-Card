@@ -48,6 +48,17 @@ export const en = {
   "editor.column_span": "Grid width (sections)",
   "editor.column_span_helper":
     "1 = 12 columns like a dashboard section; 2 = 24 columns.",
+  "editor.layout": "Layout",
+  "editor.layout.single": "One zone",
+  "editor.layout.zones": "Header, main and footer",
+  "editor.layout_helper":
+    "With three zones the header and footer stay pinned and the main zone takes the free height (and scrolls).",
+  "editor.zone.header": "Header",
+  "editor.zone.header_hint": "Pinned at the top",
+  "editor.zone.main": "Main",
+  "editor.zone.main_hint": "Takes the free height and scrolls",
+  "editor.zone.footer": "Footer",
+  "editor.zone.footer_hint": "Pinned at the bottom",
   "editor.vertical_align": "Vertical alignment",
   "editor.vertical_align.top": "Top",
   "editor.vertical_align.center": "Center",

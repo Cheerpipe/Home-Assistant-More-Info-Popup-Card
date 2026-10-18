@@ -55,7 +55,6 @@ import type {
   ChildView,
   ExtEntityRegistryEntry,
   HomeAssistant,
-  LovelaceSectionConfig,
   MoreInfoEventDetail,
   MoreInfoView,
 } from "./ha/types";
@@ -63,7 +62,13 @@ import { localize } from "./localize/localize";
 import { computeHeaderInfo, renderTitle, type Frame } from "./popup-header";
 import { setActivePopup } from "./state";
 import { POPUP_FILL_EVENT } from "./controls/state-card";
-import { setSectionAlign } from "./grid-align";
+import {
+  renderBody,
+  zoneStyles,
+  ZoneSections,
+  type SectionElement,
+  type ZoneId,
+} from "./zones";
 import { applyUix, uixConfigOf } from "./ha/uix";
 import {
   prepareTopSheet,
@@ -75,11 +80,6 @@ export interface PopupDialogParams {
   config: ResolvedPopupConfig;
   view?: MoreInfoView;
 }
-
-type SectionElement = HTMLElement & {
-  hass?: HomeAssistant;
-  config?: LovelaceSectionConfig;
-};
 
 const SCROLL_FADE_THRESHOLD = 24;
 const SCROLL_FADE_SAFE_AREA = 4;
@@ -125,12 +125,12 @@ export class MoreInfoPopupDialog extends LitElement {
 
   @state() accessor _contentScrollable = false;
 
-  /** Popup body; cached per popup when `keep_alive` is enabled. */
-  private _section?: SectionElement;
+  /** Popup body (one section per zone); cached when `keep_alive` is set. */
+  private _zones?: ZoneSections;
 
-  private readonly _keepAlive = new Map<string, SectionElement>();
+  private _sections = new Map<ZoneId, SectionElement>();
 
-  private readonly _sectionConfigKey = new WeakMap<SectionElement, string>();
+  private readonly _keepAlive = new Map<string, ZoneSections>();
 
   private readonly _childViews = new WeakMap<ChildView, HTMLElement>();
 
@@ -168,7 +168,7 @@ export class MoreInfoPopupDialog extends LitElement {
     this._fill = false;
     this._detailsYaml = false;
     this._escapeEnabled = true;
-    this._section = this._getSection(config);
+    this._syncZones(config);
     this._open = true;
     if (config.entity) this._loadEntry(config.entity);
     setActivePopup({
@@ -186,7 +186,10 @@ export class MoreInfoPopupDialog extends LitElement {
   private _dialogClosed(ev: Event) {
     if (ev.target !== ev.currentTarget) return;
     const config = this._config;
-    if (config && !config.keep_alive) this._section = undefined;
+    if (config && !config.keep_alive) {
+      this._zones = undefined;
+      this._sections = new Map();
+    }
     this._params = undefined;
     this._stack = [];
     this._entries = {};
@@ -247,14 +250,17 @@ export class MoreInfoPopupDialog extends LitElement {
   private _goBackFromEvent = () => this._goBack();
 
   protected override willUpdate(changed: PropertyValues<this>): void {
-    if (changed.has("hass") && this._section) {
-      this._section.hass = this.hass;
+    if (changed.has("hass") && this._zones) {
+      this._zones.hass = this.hass;
     }
   }
 
   protected override updated(changed: PropertyValues<this>): void {
     super.updated(changed);
-    const content = this.renderRoot.querySelector<HTMLElement>(".content");
+    // With zones, only the main zone scrolls.
+    const content =
+      this.renderRoot.querySelector<HTMLElement>(".body.zones .zone-main") ??
+      this.renderRoot.querySelector<HTMLElement>(".content");
     if (content && content !== this._observedContent) {
       this._observedContent = content;
       this._resizeObserver ??= new ResizeObserver(() => {
@@ -351,27 +357,16 @@ export class MoreInfoPopupDialog extends LitElement {
   // Body
   // ---------------------------------------------------------------------------
 
-  private _getSection(config: ResolvedPopupConfig): SectionElement {
+  private _syncZones(config: ResolvedPopupConfig) {
     // A template popup keeps one body per entity it was opened for.
     const cacheKey = `${config.popup_id}:${config.entity ?? ""}`;
-    let section = config.keep_alive ? this._keepAlive.get(cacheKey) : undefined;
-    if (!section) {
-      section = document.createElement("hui-section") as SectionElement;
-      if (config.keep_alive) this._keepAlive.set(cacheKey, section);
+    let zones = config.keep_alive ? this._keepAlive.get(cacheKey) : undefined;
+    if (!zones) {
+      zones = new ZoneSections();
+      if (config.keep_alive) this._keepAlive.set(cacheKey, zones);
     }
-    const sectionConfig: LovelaceSectionConfig = {
-      type: "grid",
-      column_span: config.column_span,
-      cards: config.cards,
-    };
-    const key = JSON.stringify(sectionConfig);
-    section.hass = this.hass;
-    if (this._sectionConfigKey.get(section) !== key) {
-      this._sectionConfigKey.set(section, key);
-      section.config = sectionConfig;
-    }
-    setSectionAlign(section, config.horizontal_align);
-    return section;
+    this._zones = zones;
+    this._sections = zones.update(config, this.hass);
   }
 
   private async _loadEntry(entityId: string) {
@@ -560,6 +555,11 @@ export class MoreInfoPopupDialog extends LitElement {
     const [target, ...rest] = this._fillCards;
     for (const card of rest) card.popupFill = 0;
     if (!target) return;
+    // With zones the main zone takes the free height itself.
+    if (this._config?.layout === "zones") {
+      target.popupFill = 0;
+      return;
+    }
     target.popupFill = 0;
     const content = this._observedContent;
     const body = content?.firstElementChild as HTMLElement | null | undefined;
@@ -896,6 +896,11 @@ export class MoreInfoPopupDialog extends LitElement {
 
   private _renderContent(frame: Frame) {
     const key = `${this._stack.length}:${frame.entityId ?? ""}:${frame.view}`;
+    // The zones body draws its own fades around the main zone.
+    const ownFades =
+      frame.view === "root" &&
+      !frame.children.length &&
+      this._config?.layout === "zones";
     return html`
       <div
         class=${classMap({
@@ -918,10 +923,16 @@ export class MoreInfoPopupDialog extends LitElement {
           `,
         )}
         <div
-          class=${classMap({ "fade-top": true, visible: this._contentScrolled })}
+          class=${classMap({
+            "fade-top": true,
+            visible: this._contentScrolled && !ownFades,
+          })}
         ></div>
         <div
-          class=${classMap({ "fade-bottom": true, visible: this._contentScrollable })}
+          class=${classMap({
+            "fade-bottom": true,
+            visible: this._contentScrollable && !ownFades,
+          })}
         ></div>
       </div>
     `;
@@ -947,19 +958,13 @@ export class MoreInfoPopupDialog extends LitElement {
     // Child views opened by the cards (vacuum clean areas) cover the grid,
     // which stays rendered so it keeps its state.
     if (frame.view === "root") {
-      const config = this._config!;
       return html`
-        <div
-          class=${classMap({
-            body: true,
-            [`align-${config.vertical_align}`]: true,
-            borderless: !config.card_borders,
-          })}
-          ?hidden=${frame.children.length > 0}
-          style=${styleMap({ "--column-span": String(config.column_span) })}
-        >
-          ${this._section}
-        </div>
+        ${renderBody(this._config!, this._sections, {
+          hidden: frame.children.length > 0,
+          onScroll: this._updateScrollState,
+          fadeTop: this._contentScrolled,
+          fadeBottom: this._contentScrollable,
+        })}
         ${this._renderChild(frame)}
       `;
     }
@@ -1032,6 +1037,7 @@ export class MoreInfoPopupDialog extends LitElement {
     fadeStyles,
     headerStyles,
     contentStyles,
+    zoneStyles,
     css`
       :host {
         /* Same full-height bottom sheet as the native more-info */
@@ -1060,6 +1066,19 @@ export class MoreInfoPopupDialog extends LitElement {
       }
       .body.align-bottom {
         justify-content: flex-end;
+      }
+      /* layout: zones. The main zone takes the free height; the header and
+         footer stay pinned while it scrolls between them. */
+      .content:has(> .body.zones:not([hidden])) {
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .body.zones {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
       }
       /* top-sheet.ts: the safe area moves to the top edge. */
       ha-bottom-sheet.top {

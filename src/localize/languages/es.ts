@@ -50,6 +50,17 @@ export const es: Record<keyof typeof en, string> = {
   "editor.column_span": "Ancho de la rejilla (secciones)",
   "editor.column_span_helper":
     "1 = 12 columnas como una sección del dashboard; 2 = 24 columnas.",
+  "editor.layout": "Distribución",
+  "editor.layout.single": "Una zona",
+  "editor.layout.zones": "Cabecera, centro y pie",
+  "editor.layout_helper":
+    "Con tres zonas la cabecera y el pie quedan fijos y el centro ocupa el alto libre (y hace scroll).",
+  "editor.zone.header": "Cabecera",
+  "editor.zone.header_hint": "Fija arriba",
+  "editor.zone.main": "Centro",
+  "editor.zone.main_hint": "Ocupa el alto libre y hace scroll",
+  "editor.zone.footer": "Pie",
+  "editor.zone.footer_hint": "Fijo abajo",
   "editor.vertical_align": "Alineación vertical",
   "editor.vertical_align.top": "Arriba",
   "editor.vertical_align.center": "Centro",

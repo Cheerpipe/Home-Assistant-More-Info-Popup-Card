@@ -17,6 +17,7 @@
   - [Custom width](#custom-width)
   - [Custom height](#custom-height)
   - [Centered cards without borders](#centered-cards-without-borders)
+  - [Header, main and footer](#header-main-and-footer)
 - [Presentation](#presentation)
   - [Bottom sheet on desktop](#bottom-sheet-on-desktop)
   - [Automatic on a phone](#automatic-on-a-phone)
@@ -244,6 +245,42 @@ cards:
     entity: light.bed_light
     grid_options:
       columns: 6
+```
+
+### Header, main and footer
+
+`layout: zones` splits the popup in three: the `header` and `footer` stay pinned at the top and bottom, and the main `cards` take the free height between them (and scroll when they do not fit). Each zone has its own `vertical_align` and `horizontal_align`; the header and footer also take a `min_height`. The main zone uses the top-level options. Give the popup a height (or open it as the full-height bottom sheet on a phone) so the main zone has room to fill. In the visual editor, the zones are drawn as a frame, and cards can be dragged between them.
+
+```yaml
+type: custom:more-info-popup-card
+popup_id: zones
+name: "Bed light"
+entity: light.bed_light
+height: custom
+min_height: "70vh"
+layout: zones
+card_borders: false
+vertical_align: center
+header:
+  horizontal_align: right
+  cards:
+    - type: tile
+      entity: switch.decorative_lights
+      grid_options:
+        columns: 6
+cards:
+  - type: custom:more-info-state-card
+    entity: light.bed_light
+footer:
+  cards:
+    - type: tile
+      entity: light.kitchen_lights
+      grid_options:
+        columns: 6
+    - type: tile
+      entity: light.ceiling_lights
+      grid_options:
+        columns: 6
 ```
 
 ## Presentation

@@ -44,6 +44,13 @@ After **Copy**, the card picker offers **Paste from clipboard** first:
 
 ![Editor: paste from clipboard](images/editor_picker.png)
 
+### Header, main and footer
+
+With **Layout → Header, main and footer** (`layout: zones`), the cards area
+becomes a frame with the three zones. Each zone shows its own vertical and
+horizontal alignment (and minimum height for the header and footer) next to
+its grid, its own **+**, and cards can be dragged from one zone to another.
+
 ## Editing a card inside the popup
 
 Every child card gets the native **Config / Visibility / Layout** tabs. The

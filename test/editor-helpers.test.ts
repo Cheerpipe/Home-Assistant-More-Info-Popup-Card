@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
-  cardIndexFromPath,
+  cardPathFromEvent,
   createVirtualLovelace,
 } from "../src/editor/virtual-lovelace";
 import { decodeHash } from "../src/history";
@@ -9,10 +9,13 @@ import { isSupportedHaVersion, parseHaVersion } from "../src/ha/internals";
 import type { HomeAssistant } from "../src/ha/types";
 
 describe("virtual lovelace", () => {
-  it("exposes the popup as view 0 / section 0 and saves its cards", async () => {
+  it("exposes the zones as sections of view 0 and saves their cards", async () => {
     const onSave = vi.fn();
     const lovelace = createVirtualLovelace({
-      section: { type: "grid", cards: [{ type: "tile" }] },
+      sections: [
+        { type: "grid", cards: [{ type: "tile" }] },
+        { type: "grid", cards: [] },
+      ],
       locale: {},
       onSave,
       onToast: vi.fn(),
@@ -20,15 +23,24 @@ describe("virtual lovelace", () => {
     expect(lovelace.config.views[0].sections?.[0].cards).toEqual([
       { type: "tile" },
     ]);
+    // A card dragged from the first zone to the second one.
     await lovelace.saveConfig({
-      views: [{ sections: [{ type: "grid", cards: [{ type: "heading" }] }] }],
+      views: [
+        {
+          sections: [
+            { type: "grid", cards: [] },
+            { type: "grid", cards: [{ type: "tile" }] },
+          ],
+        },
+      ],
     });
-    expect(onSave).toHaveBeenCalledWith([{ type: "heading" }]);
+    expect(onSave).toHaveBeenCalledWith([[], [{ type: "tile" }]]);
   });
 
-  it("reads card indexes from event paths", () => {
-    expect(cardIndexFromPath([0, 0, 3])).toBe(3);
-    expect(cardIndexFromPath("x")).toBeUndefined();
+  it("reads section and card indexes from event paths", () => {
+    expect(cardPathFromEvent([0, 2, 3])).toEqual({ section: 2, card: 3 });
+    expect(cardPathFromEvent([0, 3])).toBeUndefined();
+    expect(cardPathFromEvent("x")).toBeUndefined();
   });
 });
 

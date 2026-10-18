@@ -6,6 +6,7 @@ import {
 } from "@mdi/js";
 import type { PopupCardConfig } from "../config";
 import type { HomeAssistant } from "../ha/types";
+import type { ZoneId } from "../zones";
 import { localize, type TranslationKey } from "../localize/localize";
 
 type Schema = Record<string, unknown>;
@@ -207,37 +208,16 @@ export const buildSchema = (
         },
       },
       {
-        name: "",
-        type: "grid",
-        schema: [
-          {
-            name: "vertical_align",
-            selector: {
-              select: {
-                mode: "dropdown",
-                options: options(hass, "vertical_align", [
-                  "top",
-                  "center",
-                  "bottom",
-                ]),
-              },
-            },
+        name: "layout",
+        selector: {
+          select: {
+            mode: "list",
+            options: options(hass, "layout", ["single", "zones"]),
           },
-          {
-            name: "horizontal_align",
-            selector: {
-              select: {
-                mode: "dropdown",
-                options: options(hass, "horizontal_align", [
-                  "left",
-                  "center",
-                  "right",
-                ]),
-              },
-            },
-          },
-        ],
+        },
       },
+      // With zones, each zone has its own alignment next to its cards.
+      ...(config.layout === "zones" ? [] : [alignSchema(hass)]),
       { name: "card_borders", selector: { boolean: {} } },
       ...(config.entity || config.match
         ? [{ name: "show_header_actions", selector: { boolean: {} } }]
@@ -280,6 +260,41 @@ export const buildSchema = (
   },
 ];
 
+const alignSchema = (hass: HomeAssistant, withHeight = false) => ({
+  name: "",
+  type: "grid",
+  schema: [
+    {
+      name: "vertical_align",
+      selector: {
+        select: {
+          mode: "dropdown",
+          options: options(hass, "vertical_align", ["top", "center", "bottom"]),
+        },
+      },
+    },
+    {
+      name: "horizontal_align",
+      selector: {
+        select: {
+          mode: "dropdown",
+          options: options(hass, "horizontal_align", [
+            "left",
+            "center",
+            "right",
+          ]),
+        },
+      },
+    },
+    ...(withHeight ? [{ name: "min_height", selector: { text: {} } }] : []),
+  ],
+});
+
+/** Options of one zone of `layout: zones` (the main zone fills the rest). */
+export const buildZoneSchema = (hass: HomeAssistant, zone: ZoneId) => [
+  alignSchema(hass, zone !== "main"),
+];
+
 const HELPERS: Partial<Record<string, TranslationKey>> = {
   entity: "editor.entity_helper",
   breadcrumb: "editor.breadcrumb_helper",
@@ -287,6 +302,7 @@ const HELPERS: Partial<Record<string, TranslationKey>> = {
   min_height: "editor.length_helper",
   max_height: "editor.length_helper",
   column_span: "editor.column_span_helper",
+  layout: "editor.layout_helper",
   horizontal_align: "editor.horizontal_align_helper",
   replace_more_info: "editor.replace_more_info_helper",
   entity_glob: "editor.entity_glob_helper",
@@ -306,6 +322,7 @@ const LABELS: Partial<Record<string, TranslationKey>> = {
   min_height: "editor.min_height",
   max_height: "editor.max_height",
   column_span: "editor.column_span",
+  layout: "editor.layout",
   vertical_align: "editor.vertical_align",
   horizontal_align: "editor.horizontal_align",
   card_borders: "editor.card_borders",

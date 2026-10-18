@@ -3,9 +3,11 @@
  * `hui-dialog-edit-card`.
  *
  * - Popup options: `ha-form` with expandable sections (like the tile editor).
- * - Cards: a native `hui-section` in edit mode backed by a virtual Lovelace
- *   controller, so drag & drop, resize, copy/cut (shared dashboard
- *   clipboard), delete and "add card" are the native ones.
+ * - Cards: one native `hui-section` per zone in edit mode, backed by a
+ *   virtual Lovelace controller, so drag & drop (also between zones),
+ *   resize, copy/cut (shared dashboard clipboard), delete and "add card" are
+ *   the native ones. With `layout: zones` the zones are drawn as a frame
+ *   (header, main, footer) with their own alignment.
  * - Editing/adding a child card opens an inline sub-editor (← back), because
  *   a second `hui-dialog-edit-card` would replace the one already open (the
  *   dialog manager keeps one element per tag).
@@ -29,6 +31,7 @@ import {
   resolveConfig,
   validateConfig,
   type PopupCardConfig,
+  type PopupZoneConfig,
 } from "../config";
 import { setSectionAlign } from "../grid-align";
 import { fireEvent } from "../ha/fire-event";
@@ -43,15 +46,30 @@ import type {
 } from "../ha/types";
 import { localize } from "../localize/localize";
 import { bindEntity, cleanMatch, matchingEntities } from "../match";
-import { buildSchema, computeHelper, computeLabel } from "./schema";
 import {
-  cardIndexFromPath,
+  popupZones,
+  withZoneCards,
+  zoneCards,
+  zoneSectionConfig,
+  type Zone,
+  type ZoneId,
+} from "../zones";
+import {
+  buildSchema,
+  buildZoneSchema,
+  computeHelper,
+  computeLabel,
+} from "./schema";
+import {
+  cardPathFromEvent,
   createVirtualLovelace,
-  VIRTUAL_SECTION_INDEX,
   VIRTUAL_VIEW_INDEX,
 } from "./virtual-lovelace";
 
-type SubView = { kind: "edit"; index: number } | { kind: "add" };
+type SubView =
+  { kind: "edit"; zone: ZoneId; index: number } | { kind: "add"; zone: ZoneId };
+
+type ZoneCards = Partial<Record<ZoneId, LovelaceCardConfig[]>>;
 
 type SectionElement = HTMLElement & {
   hass?: HomeAssistant;
@@ -94,11 +112,11 @@ export class MoreInfoPopupCardEditor extends LitElement {
 
   @state() accessor _guiModeAvailable = true;
 
-  private _section?: SectionElement;
+  private readonly _sections = new Map<ZoneId, SectionElement>();
 
-  private _sectionKey?: string;
+  private _sectionsKey?: string;
 
-  private _undo: LovelaceCardConfig[][] = [];
+  private _undo: ZoneCards[] = [];
 
   @state() accessor _notice: { message: string; undo: boolean } | undefined;
 
@@ -130,7 +148,7 @@ export class MoreInfoPopupCardEditor extends LitElement {
       this._config &&
       this.hass
     ) {
-      this._syncSection();
+      this._syncSections();
     }
   }
 
@@ -138,16 +156,16 @@ export class MoreInfoPopupCardEditor extends LitElement {
   // Config helpers
   // ---------------------------------------------------------------------------
 
-  private get _cards(): LovelaceCardConfig[] {
-    return this._config?.cards ?? [];
+  private get _zones(): Zone[] {
+    return this._config ? popupZones(this._config) : [];
   }
 
-  private get _sectionConfig(): LovelaceSectionConfig {
-    return {
-      type: "grid",
-      column_span: this._config?.column_span ?? DEFAULTS.column_span,
-      cards: this._cards,
-    };
+  private _cards(zone: ZoneId): LovelaceCardConfig[] {
+    return this._config ? zoneCards(this._config, zone) : [];
+  }
+
+  private _zoneSectionConfig(zone: ZoneId): LovelaceSectionConfig {
+    return zoneSectionConfig(this._config ?? {}, this._cards(zone));
   }
 
   private _emit(config: PopupCardConfig) {
@@ -155,15 +173,27 @@ export class MoreInfoPopupCardEditor extends LitElement {
     fireEvent(this, "config-changed", { config });
   }
 
-  private _setCards(cards: LovelaceCardConfig[], undoable = true) {
+  private _snapshot(): ZoneCards {
+    return Object.fromEntries(
+      this._zones.map((zone) => [zone.id, structuredClone(zone.cards)]),
+    );
+  }
+
+  /** Replaces the cards of some zones; one undo step. */
+  private _setCards(changes: ZoneCards, undoable = true) {
     if (!this._config) return;
-    if (JSON.stringify(cards) === JSON.stringify(this._cards)) return;
-    if (undoable) {
-      this._undo = [...this._undo, structuredClone(this._cards)].slice(
-        -UNDO_LIMIT,
-      );
+    let config = this._config;
+    for (const [zone, cards] of Object.entries(changes) as [
+      ZoneId,
+      LovelaceCardConfig[],
+    ][]) {
+      config = withZoneCards(config, zone, cards);
     }
-    this._emit({ ...this._config, cards });
+    if (JSON.stringify(config) === JSON.stringify(this._config)) return;
+    if (undoable) {
+      this._undo = [...this._undo, this._snapshot()].slice(-UNDO_LIMIT);
+    }
+    this._emit(config);
   }
 
   private _undoLast = () => {
@@ -196,41 +226,62 @@ export class MoreInfoPopupCardEditor extends LitElement {
   // Native edit grid
   // ---------------------------------------------------------------------------
 
-  private _syncSection() {
-    const sectionConfig = this._sectionConfig;
-    this._section ??= document.createElement("hui-section") as SectionElement;
-    const section = this._section;
-    section.hass = this.hass;
-    setSectionAlign(
-      section,
-      this._config?.horizontal_align ?? DEFAULTS.horizontal_align,
+  private _syncSections() {
+    const zones = this._zones;
+    const sectionConfigs = zones.map((zone) =>
+      this._zoneSectionConfig(zone.id),
     );
-    const key = JSON.stringify(sectionConfig);
-    if (key === this._sectionKey) return;
-    this._sectionKey = key;
-    section.viewIndex = VIRTUAL_VIEW_INDEX;
-    section.index = VIRTUAL_SECTION_INDEX;
-    section.preview = true;
-    section.lovelace = createVirtualLovelace({
-      section: sectionConfig,
+    for (const zone of zones) {
+      if (!this._sections.has(zone.id)) {
+        this._sections.set(
+          zone.id,
+          document.createElement("hui-section") as SectionElement,
+        );
+      }
+      const section = this._sections.get(zone.id)!;
+      section.hass = this.hass;
+      setSectionAlign(section, zone.horizontal_align);
+    }
+    const key = JSON.stringify(sectionConfigs);
+    if (key === this._sectionsKey) return;
+    this._sectionsKey = key;
+    // One controller for every zone, so cards can be dragged between them.
+    const lovelace = createVirtualLovelace({
+      sections: sectionConfigs,
       locale: this.hass!.locale,
-      onSave: (cards) => this._setCards(cards),
+      onSave: (cards) =>
+        this._setCards(
+          Object.fromEntries(zones.map((zone, i) => [zone.id, cards[i] ?? []])),
+        ),
       onToast: this._toast,
     });
-    section.config = sectionConfig;
+    zones.forEach((zone, i) => {
+      const section = this._sections.get(zone.id)!;
+      section.viewIndex = VIRTUAL_VIEW_INDEX;
+      section.index = i;
+      section.preview = true;
+      section.lovelace = lovelace;
+      section.config = sectionConfigs[i];
+    });
+  }
+
+  /** Zone of a section index in the virtual view. */
+  private _zoneAt(section: number): ZoneId | undefined {
+    return this._zones[section]?.id;
   }
 
   /** Intercepted in the capture phase, before `hui-section` opens a dialog. */
   private _interceptEdit = {
     capture: true,
     handleEvent: (ev: CustomEvent<{ path?: unknown }>) => {
-      const index = cardIndexFromPath(ev.detail?.path);
-      if (index === undefined) return;
+      const path = cardPathFromEvent(ev.detail?.path);
+      const zone = path && this._zoneAt(path.section);
+      if (!path || !zone) return;
       ev.stopPropagation();
       if (ev.type === "ll-duplicate-card") {
-        this._duplicate(index);
+        this._duplicate(zone, path.card);
       } else {
-        this._openEditor(index);
+        this._openEditor(zone, path.card);
       }
     },
   };
@@ -239,16 +290,18 @@ export class MoreInfoPopupCardEditor extends LitElement {
     capture: true,
     handleEvent: (ev: Event) => {
       ev.stopPropagation();
-      this._sub = { kind: "add" };
+      const zone = (ev.currentTarget as HTMLElement).dataset.zone as ZoneId;
+      this._sub = { kind: "add", zone: zone ?? "main" };
     },
   };
 
   /** Forwards copy to the native handler so HA's clipboard cache is updated. */
-  private _copyNative(index: number) {
-    const target = this._section?.firstElementChild ?? this._section;
+  private _copyNative(zone: ZoneId, index: number) {
+    const section = this._sections.get(zone);
+    const target = section?.firstElementChild ?? section;
     if (!target) return;
     fireEvent(target, "ll-copy-card", {
-      path: [VIRTUAL_VIEW_INDEX, VIRTUAL_SECTION_INDEX, index],
+      path: [VIRTUAL_VIEW_INDEX, section!.index ?? 0, index],
     });
   }
 
@@ -256,10 +309,10 @@ export class MoreInfoPopupCardEditor extends LitElement {
   // Sub editors
   // ---------------------------------------------------------------------------
 
-  private _openEditor(index: number) {
+  private _openEditor(zone: ZoneId, index: number) {
     this._guiMode = true;
     this._guiModeAvailable = true;
-    this._sub = { kind: "edit", index };
+    this._sub = { kind: "edit", zone, index };
   }
 
   private _back = () => {
@@ -276,17 +329,17 @@ export class MoreInfoPopupCardEditor extends LitElement {
     );
   }
 
-  private _duplicate(index: number) {
-    const cards = [...this._cards];
-    cards.splice(index + 1, 0, structuredClone(cards[index]));
-    this._setCards(cards);
-    this._openEditor(index + 1);
+  private _duplicate(zone: ZoneId, index: number) {
+    const cards = [...this._cards(zone)];
+    cards.splice(index + 1, 0, structuredClone(cards[index]!));
+    this._setCards({ [zone]: cards });
+    this._openEditor(zone, index + 1);
   }
 
-  private _delete(index: number) {
-    const cards = [...this._cards];
+  private _delete(zone: ZoneId, index: number) {
+    const cards = [...this._cards(zone)];
     cards.splice(index, 1);
-    this._setCards(cards);
+    this._setCards({ [zone]: cards });
     this._returnToCards();
     this._toast({
       message: localize(this.hass, "editor.card_deleted"),
@@ -297,21 +350,22 @@ export class MoreInfoPopupCardEditor extends LitElement {
     });
   }
 
-  private _cut(index: number) {
-    this._copyNative(index);
-    const cards = [...this._cards];
+  private _cut(zone: ZoneId, index: number) {
+    this._copyNative(zone, index);
+    const cards = [...this._cards(zone)];
     cards.splice(index, 1);
-    this._setCards(cards);
+    this._setCards({ [zone]: cards });
     this._returnToCards();
   }
 
   private _cardPicked(ev: CustomEvent<{ config: LovelaceCardConfig }>) {
     ev.stopPropagation();
     const card = ev.detail.config;
-    if (!card?.type) return;
-    const cards = [...this._cards, card];
-    this._setCards(cards);
-    this._openEditor(cards.length - 1);
+    if (!card?.type || this._sub?.kind !== "add") return;
+    const zone = this._sub.zone;
+    const cards = [...this._cards(zone), card];
+    this._setCards({ [zone]: cards });
+    this._openEditor(zone, cards.length - 1);
   }
 
   private _cardChanged(
@@ -319,10 +373,11 @@ export class MoreInfoPopupCardEditor extends LitElement {
   ) {
     ev.stopPropagation();
     if (this._sub?.kind !== "edit") return;
-    const cards = [...this._cards];
-    cards[this._sub.index] = ev.detail.config;
+    const { zone, index } = this._sub;
+    const cards = [...this._cards(zone)];
+    cards[index] = ev.detail.config;
     this._guiModeAvailable = ev.detail.guiModeAvailable ?? true;
-    this._setCards(cards);
+    this._setCards({ [zone]: cards });
   }
 
   private _guiModeChanged(
@@ -371,6 +426,43 @@ export class MoreInfoPopupCardEditor extends LitElement {
     this._emit(next as PopupCardConfig);
   }
 
+  /** Alignment and height of one zone (`main` uses the top-level keys). */
+  private _zoneChanged(
+    zone: ZoneId,
+    ev: CustomEvent<{ value: PopupZoneConfig }>,
+  ) {
+    ev.stopPropagation();
+    if (!this._config) return;
+    const value = ev.detail.value;
+    if (zone === "main") {
+      this._valueChanged(
+        new CustomEvent("value-changed", {
+          detail: {
+            value: {
+              vertical_align: value.vertical_align,
+              horizontal_align: value.horizontal_align,
+            },
+          },
+        }),
+      );
+      return;
+    }
+    const next: PopupZoneConfig = { ...this._config[zone] };
+    const defaults = { vertical_align: "top", horizontal_align: "left" };
+    for (const key of [
+      "vertical_align",
+      "horizontal_align",
+      "min_height",
+    ] as const) {
+      const v = value[key];
+      if (!v || v === defaults[key as keyof typeof defaults]) delete next[key];
+      else (next as Record<string, unknown>)[key] = v;
+    }
+    const config: Record<string, unknown> = { ...this._config, [zone]: next };
+    if (!Object.keys(next).length) delete config[zone];
+    this._emit(config as PopupCardConfig);
+  }
+
   private _testPopup() {
     if (!this._config) return;
     let config;
@@ -400,8 +492,11 @@ export class MoreInfoPopupCardEditor extends LitElement {
     if (!this.hass || !this._config) return nothing;
     if (!this._ready) return html`<ha-spinner size="small"></ha-spinner>`;
     if (this._sub?.kind === "add") return this._renderAdd();
-    if (this._sub?.kind === "edit" && this._cards[this._sub.index]) {
-      return this._renderEdit(this._sub.index);
+    if (
+      this._sub?.kind === "edit" &&
+      this._cards(this._sub.zone)[this._sub.index]
+    ) {
+      return this._renderEdit(this._sub.zone, this._sub.index);
     }
     return this._renderMain();
   }
@@ -447,22 +542,66 @@ export class MoreInfoPopupCardEditor extends LitElement {
           : nothing
       }
       ${
-        this._cards.length
-          ? nothing
-          : html`<p class="empty">${localize(hass, "editor.empty")}</p>`
+        config.layout === "zones"
+          ? html`<div class="zones">
+              ${this._zones.map((zone) => this._renderZone(zone))}
+            </div>`
+          : html`
+              ${
+                this._cards("main").length
+                  ? nothing
+                  : html`<p class="empty">${localize(hass, "editor.empty")}</p>`
+              }
+              ${this._renderGrid("main")}
+            `
       }
+    `;
+  }
+
+  private _renderGrid(zone: ZoneId) {
+    const config = this._config!;
+    return html`
       <div
         class=${classMap({
           grid: true,
           borderless: config.card_borders === false,
         })}
+        data-zone=${zone}
         style=${styleMap({ "--column-span": String(config.column_span ?? 1) })}
         @ll-edit-card=${this._interceptEdit}
         @ll-duplicate-card=${this._interceptEdit}
         @ll-create-card=${this._interceptCreate}
       >
-        ${this._section}
+        ${this._sections.get(zone)}
       </div>
+    `;
+  }
+
+  /** One zone of the layout frame: its name, options and cards. */
+  private _renderZone(zone: Zone) {
+    const hass = this.hass!;
+    return html`
+      <section class="zone zone-${zone.id}">
+        <div class="zone-header">
+          <span class="zone-title">
+            ${localize(hass, `editor.zone.${zone.id}`)}
+          </span>
+          <span class="zone-hint">
+            ${localize(hass, `editor.zone.${zone.id}_hint`)}
+          </span>
+        </div>
+        <ha-form
+          class="zone-options"
+          .hass=${hass}
+          .data=${zone}
+          .schema=${buildZoneSchema(hass, zone.id)}
+          .computeLabel=${computeLabel(hass)}
+          .computeHelper=${computeHelper(hass, this._config!)}
+          @value-changed=${(ev: CustomEvent<{ value: PopupZoneConfig }>) =>
+            this._zoneChanged(zone.id, ev)}
+        ></ha-form>
+        ${this._renderGrid(zone.id)}
+      </section>
     `;
   }
 
@@ -490,9 +629,9 @@ export class MoreInfoPopupCardEditor extends LitElement {
     `;
   }
 
-  private _renderEdit(index: number) {
+  private _renderEdit(zone: ZoneId, index: number) {
     const hass = this.hass!;
-    const card = this._cards[index];
+    const card = this._cards(zone)[index];
     const label = (key: string) =>
       hass.localize(`ui.panel.lovelace.editor.edit_card.${key}`);
     const actions = html`
@@ -505,22 +644,22 @@ export class MoreInfoPopupCardEditor extends LitElement {
       <ha-icon-button
         .label=${label("duplicate")}
         .path=${mdiContentDuplicate}
-        @click=${() => this._duplicate(index)}
+        @click=${() => this._duplicate(zone, index)}
       ></ha-icon-button>
       <ha-icon-button
         .label=${label("copy")}
         .path=${mdiContentCopy}
-        @click=${() => this._copyNative(index)}
+        @click=${() => this._copyNative(zone, index)}
       ></ha-icon-button>
       <ha-icon-button
         .label=${label("cut")}
         .path=${mdiContentCut}
-        @click=${() => this._cut(index)}
+        @click=${() => this._cut(zone, index)}
       ></ha-icon-button>
       <ha-icon-button
         .label=${label("delete")}
         .path=${mdiDelete}
-        @click=${() => this._delete(index)}
+        @click=${() => this._delete(zone, index)}
       ></ha-icon-button>
     `;
     return html`
@@ -529,7 +668,7 @@ export class MoreInfoPopupCardEditor extends LitElement {
         .hass=${hass}
         .lovelace=${this.lovelace}
         .value=${card}
-        .sectionConfig=${this._sectionConfig}
+        .sectionConfig=${this._zoneSectionConfig(zone)}
         show-visibility-tab
         @config-changed=${this._cardChanged}
         @GUImode-changed=${this._guiModeChanged}
@@ -568,6 +707,37 @@ export class MoreInfoPopupCardEditor extends LitElement {
     .grid.borderless {
       --ha-card-border-width: 0;
       --ha-card-box-shadow: none;
+    }
+    /* layout: zones, drawn as the popup frame */
+    .zones {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--divider-color);
+      border-radius: var(--ha-border-radius-lg);
+      overflow: hidden;
+    }
+    .zone {
+      padding: var(--ha-space-2) var(--ha-space-3) 0;
+    }
+    .zone + .zone {
+      border-top: 1px dashed var(--divider-color);
+    }
+    .zone-main {
+      background: var(--secondary-background-color);
+      padding-bottom: var(--ha-space-4);
+    }
+    .zone-header {
+      display: flex;
+      align-items: baseline;
+      gap: var(--ha-space-2);
+      margin-bottom: var(--ha-space-2);
+    }
+    .zone-title {
+      font-weight: var(--ha-font-weight-medium);
+    }
+    .zone-hint {
+      color: var(--secondary-text-color);
+      font-size: var(--ha-font-size-s);
     }
     .sub-header {
       display: flex;

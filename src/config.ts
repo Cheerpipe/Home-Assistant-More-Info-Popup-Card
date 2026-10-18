@@ -12,6 +12,16 @@ export type PopupHeight = "auto" | "custom";
 export type NestedMoreInfo = "inline" | "dialog";
 export type VerticalAlign = "top" | "center" | "bottom";
 export type HorizontalAlign = "left" | "center" | "right";
+export type PopupLayout = "single" | "zones";
+
+/** Header or footer zone of `layout: zones`. */
+export interface PopupZoneConfig {
+  cards?: LovelaceCardConfig[];
+  vertical_align?: VerticalAlign;
+  horizontal_align?: HorizontalAlign;
+  /** Minimum height of the zone (CSS length). */
+  min_height?: string;
+}
 
 export interface PopupCardConfig extends LovelaceCardConfig {
   type: `custom:${typeof CARD_TYPE}`;
@@ -28,6 +38,10 @@ export interface PopupCardConfig extends LovelaceCardConfig {
   min_height?: string;
   max_height?: string;
   column_span?: number;
+  /** "zones": header and footer pinned around a main zone that fills. */
+  layout?: PopupLayout;
+  header?: PopupZoneConfig;
+  footer?: PopupZoneConfig;
   /** Position of the cards in the free space of a taller popup. */
   vertical_align?: VerticalAlign;
   /** Position of rows that do not fill every grid column. */
@@ -57,6 +71,8 @@ type OptionalKeys =
   | "custom_width"
   | "min_height"
   | "max_height"
+  | "header"
+  | "footer"
   | "uix"
   | "card_mod";
 
@@ -71,6 +87,7 @@ export const DEFAULTS = {
   width: "medium",
   height: "auto",
   column_span: 1,
+  layout: "single",
   vertical_align: "top",
   horizontal_align: "left",
   card_borders: true,
@@ -88,6 +105,7 @@ const HEIGHTS: PopupHeight[] = ["auto", "custom"];
 const NESTED: NestedMoreInfo[] = ["inline", "dialog"];
 const VERTICAL: VerticalAlign[] = ["top", "center", "bottom"];
 const HORIZONTAL: HorizontalAlign[] = ["left", "center", "right"];
+const LAYOUTS: PopupLayout[] = ["single", "zones"];
 
 export const POPUP_ID_PATTERN = /^[a-z0-9][a-z0-9_-]*$/;
 
@@ -117,6 +135,28 @@ const assertLength = (key: string, value: unknown) => {
   if (value !== undefined && value !== "" && !CSS_LENGTH.test(String(value))) {
     throw new Error(`"${key}" must be a CSS length such as 720px or 80vh`);
   }
+};
+
+const ZONE_KEYS = ["cards", "vertical_align", "horizontal_align", "min_height"];
+
+const validateZone = (key: "header" | "footer", zone: unknown) => {
+  if (zone === undefined) return;
+  if (!zone || typeof zone !== "object" || Array.isArray(zone)) {
+    throw new Error(`"${key}" must be an object with: ${ZONE_KEYS.join(", ")}`);
+  }
+  const z = zone as Record<string, unknown>;
+  const unknown = Object.keys(z).find((name) => !ZONE_KEYS.includes(name));
+  if (unknown) {
+    throw new Error(
+      `Unknown "${key}.${unknown}"; use: ${ZONE_KEYS.join(", ")}`,
+    );
+  }
+  if (z.cards !== undefined && !Array.isArray(z.cards)) {
+    throw new Error(`"${key}.cards" must be a list`);
+  }
+  assertOneOf(`${key}.vertical_align`, z.vertical_align, VERTICAL);
+  assertOneOf(`${key}.horizontal_align`, z.horizontal_align, HORIZONTAL);
+  assertLength(`${key}.min_height`, z.min_height);
 };
 
 const MATCH_KEYS = ["integration", "domain", "entities", "entity_glob"];
@@ -181,6 +221,9 @@ export const validateConfig = (config: unknown): PopupCardConfig => {
   assertOneOf("width", c.width, WIDTHS);
   assertOneOf("height", c.height, HEIGHTS);
   assertOneOf("nested_more_info", c.nested_more_info, NESTED);
+  assertOneOf("layout", c.layout, LAYOUTS);
+  validateZone("header", c.header);
+  validateZone("footer", c.footer);
   assertOneOf("vertical_align", c.vertical_align, VERTICAL);
   assertOneOf("horizontal_align", c.horizontal_align, HORIZONTAL);
   if (c.card_borders !== undefined && typeof c.card_borders !== "boolean") {
