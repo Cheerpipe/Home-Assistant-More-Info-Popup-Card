@@ -37,20 +37,6 @@ integration):
 | `dismissable: false`, `auto_close`, `keep_alive`                                                                         | Not verified   |                                                                                                       |
 | Config validation errors                                                                                                 | Unit           | `config.test.ts`                                                                                      |
 
-## WLED card
-
-Checked on a real WLED (MoonModules 14.7.3, 180 LEDs, 4 segments) added to the development instance; its state was saved before and restored after.
-
-| Case                                                                                                                  | How          | Evidence                                                                          |
-| --------------------------------------------------------------------------------------------------------------------- | ------------ | --------------------------------------------------------------------------------- |
-| Segment, palette select and speed / intensity numbers found by unique id; main light gets plain controls              | Unit, HA     | `wled-link.test.ts`, dev instance                                                 |
-| Effect metadata: sliders, custom labels, options, colors, palette, categories (incl. MoonModules `1.5d` and defaults) | Unit         | `wled-meta.test.ts` with real `/json/fxdata` strings                              |
-| Secondary color sets only color slot 2 (`col: [[], rgb]`)                                                             | HA           | device state read back                                                            |
-| Palettes with previews, dynamic ones from the segment colors; selection through the select entity                     | HA, Shot     | [palettes](images/wled_palettes.png), [dynamic](images/wled_palettes_dynamic.png) |
-| Effect picker as a child view in the popup, inline on a dashboard; search and category filters                        | HA, Shot     | [effects](images/wled_effects.png), [audio](images/wled_effects_audio.png)        |
-| Effect sliders and options, custom 3 as 0-31                                                                          | HA, Shot     | [controls](images/wled_effect_controls.png)                                       |
-| Device unreachable / https page with an http device                                                                   | Not verified | the note and the HA-only fallback are in the code                                 |
-
 ## Editor
 
 | Case                                                     | How      | Evidence                                                                        |

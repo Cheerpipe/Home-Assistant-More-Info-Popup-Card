@@ -82,9 +82,6 @@ export const en = {
   "controls_card.name": "More-info controls",
   "controls_card.description":
     "Row of more-info chips: selects, toggles, numbers and actions.",
-  "wled_card.name": "More-info WLED",
-  "wled_card.description":
-    "The native light more-info for a WLED segment, with secondary color, palette previews and effects grouped like in WLED, with their sliders.",
   "controls.empty": "Add controls in the editor.",
   "controls.entity": "Entity",
   "controls.control": "Main control",
@@ -184,36 +181,4 @@ export const en = {
   "controls.wrap": "Wrap on phones",
   "controls.wrap_helper":
     "Chips go to new rows instead of scrolling sideways (Home Assistant scrolls).",
-  "wled.secondary_color": "Secondary color",
-  "wled.tertiary_color": "Tertiary color",
-  "wled.palette": "Palette",
-  "wled.effects": "Effects",
-  "wled.search": "Search effects",
-  "wled.no_effects": "No effects match",
-  "wled.filter.all": "All",
-  "wled.filter.1d": "Strip",
-  "wled.filter.2d": "Matrix",
-  "wled.filter.1.5d": "Strip on matrix",
-  "wled.filter.volume": "Audio: volume",
-  "wled.filter.frequency": "Audio: frequency",
-  "wled.filter.palette": "Uses palette",
-  "wled.slider.sx": "Speed",
-  "wled.slider.ix": "Intensity",
-  "wled.slider.c1": "Custom 1",
-  "wled.slider.c2": "Custom 2",
-  "wled.slider.c3": "Custom 3",
-  "wled.option.o1": "Option 1",
-  "wled.option.o2": "Option 2",
-  "wled.option.o3": "Option 3",
-  "wled.color_black": "Black (off)",
-  "wled.not_used": "Not used by this effect",
-  "wled.not_wled": "Pick a light of the WLED integration.",
-  "wled.unreachable":
-    "Secondary color, palette previews and effect details come straight from WLED ({host}), which this browser can't reach.",
-  "wled.mixed_content":
-    "Secondary color, palette previews and effect details come straight from WLED ({host}): this page is on https and the device on http. Open Home Assistant over http on your network, or set an https address for the device.",
-  "controls.host": "WLED address",
-  "controls.host_helper":
-    "Defaults to the device's address in Home Assistant (its configuration URL).",
-  "controls.show_effects": "Show effects",
 } as const;

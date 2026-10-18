@@ -85,9 +85,6 @@ export const es: Record<keyof typeof en, string> = {
   "controls_card.name": "Controles more-info",
   "controls_card.description":
     "Fila de chips del more-info: selectores, interruptores, números y acciones.",
-  "wled_card.name": "More-info WLED",
-  "wled_card.description":
-    "El more-info nativo de luces para un segmento WLED, con color secundario, vista previa de paletas y efectos agrupados como en WLED, con sus controles.",
   "controls.empty": "Añade controles en el editor.",
   "controls.entity": "Entidad",
   "controls.control": "Control principal",
@@ -187,36 +184,4 @@ export const es: Record<keyof typeof en, string> = {
   "controls.wrap": "Saltar de línea en móvil",
   "controls.wrap_helper":
     "Los chips bajan de línea en lugar de desplazarse de lado (Home Assistant los desplaza).",
-  "wled.secondary_color": "Color secundario",
-  "wled.tertiary_color": "Color terciario",
-  "wled.palette": "Paleta",
-  "wled.effects": "Efectos",
-  "wled.search": "Buscar efectos",
-  "wled.no_effects": "Ningún efecto coincide",
-  "wled.filter.all": "Todos",
-  "wled.filter.1d": "Tira",
-  "wled.filter.2d": "Matriz",
-  "wled.filter.1.5d": "Tira en matriz",
-  "wled.filter.volume": "Audio: volumen",
-  "wled.filter.frequency": "Audio: frecuencia",
-  "wled.filter.palette": "Usa paleta",
-  "wled.slider.sx": "Velocidad",
-  "wled.slider.ix": "Intensidad",
-  "wled.slider.c1": "Personalizado 1",
-  "wled.slider.c2": "Personalizado 2",
-  "wled.slider.c3": "Personalizado 3",
-  "wled.option.o1": "Opción 1",
-  "wled.option.o2": "Opción 2",
-  "wled.option.o3": "Opción 3",
-  "wled.color_black": "Negro (apagado)",
-  "wled.not_used": "Este efecto no lo usa",
-  "wled.not_wled": "Elige una luz de la integración WLED.",
-  "wled.unreachable":
-    "El color secundario, la vista previa de paletas y el detalle de los efectos vienen directo de WLED ({host}), al que este navegador no llega.",
-  "wled.mixed_content":
-    "El color secundario, la vista previa de paletas y el detalle de los efectos vienen directo de WLED ({host}): esta página está en https y el dispositivo en http. Abre Home Assistant por http en tu red o indica una dirección https para el dispositivo.",
-  "controls.host": "Dirección de WLED",
-  "controls.host_helper":
-    "Por defecto, la dirección del dispositivo en Home Assistant (su URL de configuración).",
-  "controls.show_effects": "Mostrar efectos",
 };

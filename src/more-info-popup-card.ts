@@ -43,7 +43,6 @@ import { bindEntity, matchingEntities } from "./match";
 import "./editor/popup-card-editor";
 import { CONTROLS_CARD_TYPE } from "./controls/controls-card";
 import { STATE_CARD_TYPE } from "./controls/state-card";
-import { WLED_CARD_TYPE } from "./wled/wled-card";
 
 declare const __VERSION__: string;
 
@@ -366,13 +365,6 @@ if (!customElements.get(CARD_TAG)) {
       type: CONTROLS_CARD_TYPE,
       name: localize(undefined, "controls_card.name"),
       description: localize(undefined, "controls_card.description"),
-      preview: true,
-      documentationURL: "https://github.com/cheerpipe/more-info-popup-card",
-    },
-    {
-      type: WLED_CARD_TYPE,
-      name: localize(undefined, "wled_card.name"),
-      description: localize(undefined, "wled_card.description"),
       preview: true,
       documentationURL: "https://github.com/cheerpipe/more-info-popup-card",
     },
