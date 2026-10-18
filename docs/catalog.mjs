@@ -383,18 +383,19 @@ export const PAGES = [
     sections: [
       {
         title: "Controls",
+        text: "Lights get the whole native light control: the brightness slider, the button bar (power, brightness, color, color temperature, white) and the favorite colors; on/off lights get the lightbulb toggle. Entities whose more-info is a view of its own (camera, conversation, counter, date, datetime, group, image, input_datetime, person, remote, automation, sun, time, timer, update, weather) and those whose more-info is only the state row (number, select, text, scene and the `input_*` helpers) use `control: more_info`: the native more-info content itself, under the native state row where more-info shows one. The state header is then hidden by default (`show_state: true` adds it back). On a full-height sheet, the control sits in the free height like in more-info.",
         examples: [
           inPopup(
             "state_toggle",
             "toggle",
-            "Switches, input booleans, sirens, lights without brightness…",
+            "Switches, input booleans, sirens. Lights without brightness use the lightbulb icons.",
             "switch.decorative_lights",
             [state("switch.decorative_lights")],
           ),
           inPopup(
             "state_brightness",
             "brightness",
-            "Lights with brightness. The header shows the brightness like more-info.",
+            "Lights with brightness, with the native button bar and favorite colors. The header shows the brightness like more-info.",
             "light.ceiling_lights",
             [state("light.ceiling_lights")],
           ),

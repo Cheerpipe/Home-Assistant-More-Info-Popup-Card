@@ -48,14 +48,17 @@ integration):
 
 ## State card
 
-| Case                                                                          | How  | Evidence                                                                         |
-| ----------------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------- |
-| Automatic control per domain (same rules as more-info)                        | Unit | `controls.test.ts`                                                               |
-| Every control renders (toggle … vacuum status)                                | Shot | [state card page](state-card.md)                                                 |
-| Header text like more-info (brightness, speed, state · position)              | Shot | [brightness](images/state_brightness.png), [position](images/state_position.png) |
-| `state_override`, `show_last_changed`, `show_state`, `control: none`          | Shot | [state card page](state-card.md#options)                                         |
-| Climate / humidifier / water heater controls appear immediately on first load | HA   | regression fixed: no wait for the state header                                   |
-| Interaction: fan speed, vacuum start / return to base                         | HA   | entity state changed                                                             |
+| Case                                                                                                                        | How  | Evidence                                                                         |
+| --------------------------------------------------------------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------- |
+| Automatic control per domain (same rules as more-info)                                                                      | Unit | `controls.test.ts`                                                               |
+| Every control renders (toggle … vacuum status)                                                                              | Shot | [state card page](state-card.md)                                                 |
+| Header text like more-info (brightness, speed, state · position)                                                            | Shot | [brightness](images/state_brightness.png), [position](images/state_position.png) |
+| `state_override`, `show_last_changed`, `show_state`, `control: none`                                                        | Shot | [state card page](state-card.md#options)                                         |
+| Climate / humidifier / water heater controls appear immediately on first load                                               | HA   | regression fixed: no wait for the state header                                   |
+| Control centered in the free height of a full-height sheet, like more-info                                                  | HA   | compared side by side with the native dialog on a phone; no change on desktop    |
+| Light: lightbulb toggle, button bar, color / color temp pickers, favorite colors                                            | HA   | compared side by side with the native dialog                                     |
+| `more_info` control: camera, conversation, date, datetime, number, person, remote, select, sun, text, time, update, weather | HA   | rendered in the dev instance; sun compared with the native dialog                |
+| Interaction: fan speed, vacuum start / return to base                                                                       | HA   | entity state changed                                                             |
 
 ## Controls card
 

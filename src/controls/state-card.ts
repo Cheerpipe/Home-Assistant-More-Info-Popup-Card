@@ -4,9 +4,13 @@
  * slider, cover position, thermostat…) — as a composable card.
  */
 import {
+  mdiBrightness6,
   mdiFan,
   mdiFanOff,
+  mdiFileWordBox,
   mdiGestureTapButton,
+  mdiLightbulbOff,
+  mdiLightbulbOn,
   mdiPlay,
   mdiPower,
   mdiStop,
@@ -15,15 +19,23 @@ import { css, html, LitElement, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import { computeDomain, computeObjectId, computeStateName } from "../ha/entity";
 import type {
+  ExtEntityRegistryEntry,
   HassEntity,
   HomeAssistant,
   LovelaceCardConfig,
   LovelaceGridOptions,
 } from "../ha/types";
+import { fireEvent } from "../ha/fire-event";
 import { ensureMoreInfoElements } from "./loader";
 import {
   autoStateControl,
   DOMAINS_WITHOUT_STATE_HEADER,
+  LIGHT_TAGS,
+  showsStateRow,
+  lightSupportsBrightness,
+  lightSupportsColor,
+  lightSupportsColorTemp,
+  lightSupportsWhite,
   STATE_CONTROLS,
   supports,
   type StateControlName,
@@ -32,6 +44,12 @@ import { stateCardForm } from "./forms";
 import { cardAppearanceStyles, type CardAppearance } from "./styles";
 
 export const STATE_CARD_TYPE = "more-info-state-card";
+
+/**
+ * Fired when the card is attached so a containing popup can hand it the free
+ * height of a full-height sheet (see `popupFill`).
+ */
+export const POPUP_FILL_EVENT = "more-info-popup-fill";
 
 export interface StateCardConfig extends LovelaceCardConfig {
   entity: string;
@@ -60,6 +78,8 @@ const FAN_SPEED_COUNT_MAX_FOR_BUTTONS = 6;
 
 const fanSpeedCount = (stateObj: HassEntity): number =>
   Math.round(100 / (stateObj.attributes.percentage_step ?? 1)) + 1;
+
+type LightMainControl = "brightness" | "color" | "color_temp";
 
 const SCRIPT_MAX_MODES = ["queued", "parallel"];
 
@@ -136,6 +156,12 @@ export class MoreInfoStateCard extends LitElement {
     data?: Record<string, unknown>;
   } = {};
 
+  /** Control shown by the light button bar (`more-info-light`). */
+  @state() accessor _lightControl: LightMainControl = "brightness";
+
+  /** Registry entry, for the light favorite colors. */
+  @state() accessor _entry: ExtEntityRegistryEntry | null | undefined;
+
   private _controlElement?: HTMLElement & {
     stateObj?: HassEntity;
     hass?: HomeAssistant;
@@ -157,6 +183,26 @@ export class MoreInfoStateCard extends LitElement {
     this._ready = false;
     this._loadingKey = undefined;
     this._scriptData = { action: config.entity };
+    this._lightControl = "brightness";
+    this._entry = undefined;
+    this._entryLoaded = undefined;
+  }
+
+  override connectedCallback(): void {
+    super.connectedCallback();
+    fireEvent(this, POPUP_FILL_EVENT);
+  }
+
+  /**
+   * Extra height the popup gives the control, so it sits centered in the free
+   * space like in the native full-height more-info. Set synchronously because
+   * the popup measures the layout right after.
+   */
+  public set popupFill(px: number) {
+    this.style.removeProperty("--popup-min-height");
+    if (px <= 0) return;
+    const ownHeight = this.getBoundingClientRect().height;
+    this.style.setProperty("--popup-min-height", `${ownHeight + px}px`);
   }
 
   public getCardSize(): number {
@@ -193,10 +239,16 @@ export class MoreInfoStateCard extends LitElement {
     if (spec) {
       const extra: readonly string[] =
         "extraTags" in spec ? spec.extraTags : [];
-      loads.push(ensureMoreInfoElements(spec.load, [spec.tag, ...extra]));
+      const domain = spec.load || computeDomain(this._config.entity);
+      loads.push(ensureMoreInfoElements(domain, [spec.tag, ...extra]));
     }
     // Climate, humidifier and water heater controls don't import the header:
     // load it from a domain whose more-info has one.
+    // The light button bar and pickers only come with the light more-info,
+    // also for on/off lights shown with the generic toggle.
+    if (computeDomain(this._config.entity) === "light") {
+      loads.push(ensureMoreInfoElements("light", [...LIGHT_TAGS]));
+    }
     if (needsHeader) {
       loads.push(
         ensureMoreInfoElements("switch", ["ha-more-info-state-header"]),
@@ -210,7 +262,9 @@ export class MoreInfoStateCard extends LitElement {
   private get _showState(): boolean {
     const domain = computeDomain(this._config!.entity);
     return (
-      this._config!.show_state ?? !DOMAINS_WITHOUT_STATE_HEADER.includes(domain)
+      this._config!.show_state ??
+      (!DOMAINS_WITHOUT_STATE_HEADER.includes(domain) &&
+        this._controlName !== "more_info")
     );
   }
 
@@ -219,6 +273,7 @@ export class MoreInfoStateCard extends LitElement {
     if (!name) return nothing;
     if (name === "script") return this._script(stateObj);
     if (name === "press") return this._press(stateObj);
+    if (name === "more_info") return this._moreInfo(stateObj);
     const { tag } = STATE_CONTROLS[name];
     if (this._controlTag !== tag) {
       this._controlTag = tag;
@@ -235,10 +290,22 @@ export class MoreInfoStateCard extends LitElement {
     };
     element.stateObj = stateObj;
     element.hass = this.hass;
-    const isFan = computeDomain(stateObj.entity_id) === "fan";
+    const domain = computeDomain(stateObj.entity_id);
+    const isFan = domain === "fan";
     if (name === "toggle") {
-      element.iconPathOn = isFan ? mdiFan : undefined;
-      element.iconPathOff = isFan ? mdiFanOff : undefined;
+      element.iconPathOn = isFan
+        ? mdiFan
+        : domain === "light"
+          ? mdiLightbulbOn
+          : undefined;
+      element.iconPathOff = isFan
+        ? mdiFanOff
+        : domain === "light"
+          ? mdiLightbulbOff
+          : undefined;
+    }
+    if (domain === "light" && (name === "toggle" || name === "brightness")) {
+      return this._light(stateObj, element);
     }
     if (
       name === "fan_speed" &&
@@ -249,6 +316,192 @@ export class MoreInfoStateCard extends LitElement {
       return html`${element}${this._fanPowerButton(stateObj)}`;
     }
     return element;
+  }
+
+  /**
+   * Same content as `more-info-light.ts`: the main control (brightness, color
+   * or color temperature), its button bar and the favorite colors. Effects
+   * are left to the controls card.
+   */
+  private _light(stateObj: HassEntity, element: HTMLElement) {
+    const hass = this.hass!;
+    const supportsBrightness = lightSupportsBrightness(stateObj);
+    const supportsColor = lightSupportsColor(stateObj);
+    const supportsColorTemp = lightSupportsColorTemp(stateObj);
+    const supportsWhite = lightSupportsWhite(stateObj);
+    if (!supportsBrightness && !supportsColor && !supportsColorTemp) {
+      return element;
+    }
+    const unavailable = stateObj.state === "unavailable";
+    const main = this._lightControl;
+    const setMain = (control: LightMainControl) => (ev: Event) => {
+      ev.stopPropagation();
+      this._lightControl = control;
+    };
+    const call = (service: string, data: Record<string, unknown> = {}) =>
+      hass.callService("light", service, {
+        entity_id: stateObj.entity_id,
+        ...data,
+      });
+    if (supportsColor || supportsColorTemp) this._loadEntry();
+    const entry = this._entry;
+    const favorites = entry?.options?.light?.favorite_colors as
+      unknown[] | null | undefined;
+    const showFavorites = Boolean(
+      entry && (favorites == null || favorites.length > 0),
+    );
+    return html`
+      ${supportsBrightness ? nothing : element}
+      ${
+        supportsBrightness && main === "brightness"
+          ? element
+          : supportsColor && main === "color"
+            ? html`<light-color-rgb-picker
+                .hass=${hass}
+                .stateObj=${stateObj}
+              ></light-color-rgb-picker>`
+            : supportsColorTemp && main === "color_temp"
+              ? html`<light-color-temp-picker
+                  .hass=${hass}
+                  .stateObj=${stateObj}
+                ></light-color-temp-picker>`
+              : nothing
+      }
+      <ha-icon-button-group>
+        ${
+          supportsBrightness
+            ? html`<ha-icon-button
+                .disabled=${unavailable}
+                .label=${hass.localize(
+                  "ui.dialogs.more_info_control.light.toggle",
+                )}
+                @click=${(ev: Event) => {
+                  ev.stopPropagation();
+                  call(stateObj.state === "on" ? "turn_off" : "turn_on");
+                }}
+              >
+                <ha-svg-icon .path=${mdiPower}></ha-svg-icon>
+              </ha-icon-button>`
+            : nothing
+        }
+        ${
+          supportsColor || supportsColorTemp
+            ? html`<div class="separator"></div>
+                <ha-icon-button-toggle
+                  .selected=${main === "brightness"}
+                  .disabled=${unavailable}
+                  .label=${hass.formatEntityAttributeName(
+                    stateObj,
+                    "brightness",
+                  )}
+                  @click=${setMain("brightness")}
+                >
+                  <ha-svg-icon .path=${mdiBrightness6}></ha-svg-icon>
+                </ha-icon-button-toggle>`
+            : nothing
+        }
+        ${
+          supportsColor
+            ? html`<ha-icon-button-toggle
+                border-only
+                .selected=${main === "color"}
+                .disabled=${unavailable}
+                .label=${hass.localize(
+                  "ui.dialogs.more_info_control.light.color",
+                )}
+                @click=${setMain("color")}
+              >
+                <span class="wheel color"></span>
+              </ha-icon-button-toggle>`
+            : nothing
+        }
+        ${
+          supportsColorTemp
+            ? html`<ha-icon-button-toggle
+                border-only
+                .selected=${main === "color_temp"}
+                .disabled=${unavailable}
+                .label=${hass.localize(
+                  "ui.dialogs.more_info_control.light.color_temp",
+                )}
+                @click=${setMain("color_temp")}
+              >
+                <span class="wheel color-temp"></span>
+              </ha-icon-button-toggle>`
+            : nothing
+        }
+        ${
+          supportsWhite
+            ? html`<div class="separator"></div>
+                <ha-icon-button
+                  .disabled=${unavailable}
+                  .label=${hass.localize(
+                    "ui.dialogs.more_info_control.light.set_white",
+                  )}
+                  @click=${(ev: Event) => {
+                    ev.stopPropagation();
+                    call("turn_on", { white: true });
+                  }}
+                >
+                  <ha-svg-icon .path=${mdiFileWordBox}></ha-svg-icon>
+                </ha-icon-button>`
+            : nothing
+        }
+      </ha-icon-button-group>
+      ${
+        showFavorites
+          ? html`<ha-more-info-light-favorite-colors
+              .hass=${hass}
+              .stateObj=${stateObj}
+              .entry=${entry}
+            ></ha-more-info-light-favorite-colors>`
+          : nothing
+      }
+    `;
+  }
+
+  /** Same content as `ha-more-info-info`: state row, then `more-info-content`. */
+  private _moreInfo(stateObj: HassEntity) {
+    this._loadEntry();
+    const row = showsStateRow(stateObj);
+    return html`
+      ${
+        row
+          ? html`<state-card-content
+              in-dialog
+              .hass=${this.hass}
+              .stateObj=${stateObj}
+            ></state-card-content>`
+          : nothing
+      }
+      <more-info-content
+        ?full-height=${!row}
+        .hass=${this.hass}
+        .stateObj=${stateObj}
+        .entry=${this._entry}
+        .editMode=${false}
+      ></more-info-content>
+    `;
+  }
+
+  private _entryLoaded?: string;
+
+  /** Same request as the more-info dialog; null when not allowed. */
+  private _loadEntry() {
+    const entityId = this._config!.entity;
+    if (this._entryLoaded === entityId) return;
+    this._entryLoaded = entityId;
+    this.hass!.callWS<ExtEntityRegistryEntry>({
+      type: "config/entity_registry/get",
+      entity_id: entityId,
+    }).then(
+      (entry) => {
+        if (this._entryLoaded === entityId) this._entry = entry;
+      },
+      () => {
+        if (this._entryLoaded === entityId) this._entry = null;
+      },
+    );
   }
 
   /** On/off button under the fan speed slider (`more-info-fan.ts`). */
@@ -440,7 +693,11 @@ export class MoreInfoStateCard extends LitElement {
           this._ready
             ? html`
                 ${this._header(stateObj)}
-                <div class="controls">${this._control(stateObj)}</div>
+                <div
+                  class="controls ${this._controlName === "more_info" ? "more-info" : ""}"
+                >
+                  ${this._control(stateObj)}
+                </div>
               `
             : nothing
         }
@@ -451,9 +708,15 @@ export class MoreInfoStateCard extends LitElement {
   static override styles = [
     cardAppearanceStyles,
     css`
+      :host {
+        display: flex;
+        flex-direction: column;
+        min-height: var(--popup-min-height, auto);
+      }
       ha-card {
         display: flex;
         flex-direction: column;
+        flex: 1;
       }
       /* Spacing between the main control and the next block in more-info. */
       ha-card.plain {
@@ -470,6 +733,24 @@ export class MoreInfoStateCard extends LitElement {
         justify-content: center;
         flex: 1;
       }
+      /* The native content lays itself out (more-info-content). */
+      .controls.more-info {
+        align-items: stretch;
+        justify-content: flex-start;
+      }
+      more-info-content {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+      more-info-content[full-height] {
+        flex: 1;
+      }
+      /* ha-more-info-info.ts */
+      .controls.more-info > state-card-content {
+        display: block;
+        margin-bottom: var(--ha-space-4);
+      }
       .controls > *:not(:last-child) {
         margin-bottom: var(--ha-space-6);
       }
@@ -483,6 +764,28 @@ export class MoreInfoStateCard extends LitElement {
       }
       .buttons > * {
         margin: var(--ha-space-2);
+      }
+      /* more-info-light.ts */
+      .wheel {
+        width: 28px;
+        height: 28px;
+        flex: none;
+        border-radius: var(--ha-border-radius-circle);
+      }
+      .wheel.color {
+        background-image: url("/static/images/color_wheel.png");
+        background-size: cover;
+      }
+      .wheel.color-temp {
+        background: linear-gradient(
+          0,
+          rgb(166, 209, 255) 0%,
+          white 50%,
+          rgb(255, 160, 0) 100%
+        );
+      }
+      *[disabled] .wheel {
+        filter: grayscale(1) opacity(0.5);
       }
       /* The media player draws its own full-width layout. */
       more-info-media_player {

@@ -5,7 +5,10 @@ import {
   ENTITY_SELECT,
 } from "../src/controls/attributes";
 import { inferControlType } from "../src/controls/items";
-import { autoStateControl } from "../src/controls/state-controls";
+import {
+  autoStateControl,
+  showsStateRow,
+} from "../src/controls/state-controls";
 import type { HassEntity } from "../src/ha/types";
 
 const entity = (
@@ -30,9 +33,27 @@ describe("autoStateControl (same choice as more-info)", () => {
     [entity("script.a", "off"), "script"],
     [entity("button.a", "unknown"), "press"],
     [entity("input_button.a", "unknown"), "press"],
+    [entity("counter.a", "1"), "more_info"],
+    [entity("weather.a", "sunny"), "more_info"],
+    [entity("remote.a", "on"), "more_info"],
+    [entity("input_number.a", "1"), "more_info"],
     [entity("sensor.a", "1"), undefined],
   ])("%o → %s", (stateObj, expected) => {
     expect(autoStateControl(stateObj)).toBe(expected);
+  });
+});
+
+describe("showsStateRow (state row above the more-info content)", () => {
+  it.each([
+    [entity("counter.a", "1"), true],
+    [entity("remote.a", "on"), true],
+    [entity("camera.a", "idle"), false],
+    [entity("weather.a", "sunny"), false],
+    [entity("timer.a", "idle"), false],
+    [entity("group.a", "on", { entity_id: ["light.a", "light.b"] }), false],
+    [entity("group.b", "on", { entity_id: ["light.a", "sensor.b"] }), true],
+  ])("%o → %s", (stateObj, expected) => {
+    expect(showsStateRow(stateObj)).toBe(expected);
   });
 });
 

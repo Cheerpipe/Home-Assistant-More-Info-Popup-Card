@@ -62,6 +62,7 @@ import type {
 import { localize } from "./localize/localize";
 import { computeHeaderInfo, renderTitle, type Frame } from "./popup-header";
 import { setActivePopup } from "./state";
+import { POPUP_FILL_EVENT } from "./controls/state-card";
 import { applyUix, uixConfigOf } from "./ha/uix";
 
 export interface PopupDialogParams {
@@ -132,6 +133,9 @@ export class MoreInfoPopupDialog extends LitElement {
   private _autoCloseTimer?: ReturnType<typeof setTimeout>;
 
   private _resizeObserver?: ResizeObserver;
+
+  /** State cards in the popup body, in attach order (`POPUP_FILL_EVENT`). */
+  private readonly _fillCards = new Set<HTMLElement & { popupFill: number }>();
 
   private get _config(): ResolvedPopupConfig | undefined {
     return this._params?.config;
@@ -217,12 +221,14 @@ export class MoreInfoPopupDialog extends LitElement {
     super.connectedCallback();
     this.addEventListener("close-dialog", this._closeFromEvent);
     this.addEventListener("close-child-view", this._goBackFromEvent);
+    this.addEventListener(POPUP_FILL_EVENT, this._registerFillCard);
   }
 
   override disconnectedCallback(): void {
     super.disconnectedCallback();
     this.removeEventListener("close-dialog", this._closeFromEvent);
     this.removeEventListener("close-child-view", this._goBackFromEvent);
+    this.removeEventListener(POPUP_FILL_EVENT, this._registerFillCard);
     this._resizeObserver?.disconnect();
     this._clearAutoClose();
   }
@@ -245,14 +251,16 @@ export class MoreInfoPopupDialog extends LitElement {
     const content = this.renderRoot.querySelector<HTMLElement>(".content");
     if (content && content !== this._observedContent) {
       this._observedContent = content;
-      this._resizeObserver ??= new ResizeObserver(() =>
-        this._updateScrollState(),
-      );
+      this._resizeObserver ??= new ResizeObserver(() => {
+        this._updateFill();
+        this._updateScrollState();
+      });
       this._resizeObserver.disconnect();
       this._resizeObserver.observe(content);
       if (content.firstElementChild) {
         this._resizeObserver.observe(content.firstElementChild);
       }
+      this._updateFill();
       this._updateScrollState();
     }
     this._applyUix();
@@ -483,6 +491,38 @@ export class MoreInfoPopupDialog extends LitElement {
         this.removeEventListener(type, this._armAutoClose);
       }
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Full-height layout (`.controls { flex: 1 }` in the native more-info)
+  // ---------------------------------------------------------------------------
+
+  private _registerFillCard = (ev: Event) => {
+    ev.stopPropagation();
+    this._fillCards.add(
+      ev.composedPath()[0] as HTMLElement & { popupFill: number },
+    );
+    this._updateFill();
+  };
+
+  /**
+   * On a full-height sheet the native more-info centers the main control in
+   * the free space. Grid cards size to their content, so give that space to
+   * the first state card instead. Measured with the fill removed so a
+   * content-sized dialog never keeps a stale fill.
+   */
+  private _updateFill() {
+    for (const card of this._fillCards) {
+      if (!card.isConnected) this._fillCards.delete(card);
+    }
+    const [target, ...rest] = this._fillCards;
+    for (const card of rest) card.popupFill = 0;
+    if (!target) return;
+    target.popupFill = 0;
+    const content = this._observedContent;
+    const body = content?.firstElementChild as HTMLElement | null | undefined;
+    if (!content || !body || this._frame?.view !== "root") return;
+    target.popupFill = Math.floor(content.clientHeight - body.offsetHeight);
   }
 
   // ---------------------------------------------------------------------------

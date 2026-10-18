@@ -34,6 +34,7 @@ export interface AreaRegistryEntry {
 export interface ExtEntityRegistryEntry extends EntityRegistryDisplayEntry {
   unique_id: string;
   platform: string;
+  options?: Record<string, Record<string, unknown> | undefined> | null;
 }
 
 export interface HassService {

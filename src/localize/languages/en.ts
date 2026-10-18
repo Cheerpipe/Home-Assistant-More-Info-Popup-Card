@@ -96,6 +96,7 @@ export const en = {
   "controls.control.vacuum_status": "Vacuum status",
   "controls.control.lawn_mower_status": "Lawn mower status",
   "controls.control.media_player": "Media player",
+  "controls.control.more_info": "Native more-info content",
   "controls.control.script": "Script (run / cancel)",
   "controls.control.press": "Press button",
   "controls.show_state": "Show state",

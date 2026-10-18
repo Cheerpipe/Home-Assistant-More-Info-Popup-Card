@@ -99,6 +99,7 @@ export const es: Record<keyof typeof en, string> = {
   "controls.control.vacuum_status": "Estado de la aspiradora",
   "controls.control.lawn_mower_status": "Estado del cortacésped",
   "controls.control.media_player": "Reproductor multimedia",
+  "controls.control.more_info": "Contenido nativo de more-info",
   "controls.control.script": "Script (ejecutar / cancelar)",
   "controls.control.press": "Botón de pulsar",
   "controls.show_state": "Mostrar estado",

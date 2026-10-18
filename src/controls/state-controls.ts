@@ -18,9 +18,22 @@ export interface StateControlSpec {
   inline?: true;
 }
 
+/** Button bar and pickers drawn around the light control (`more-info-light`). */
+export const LIGHT_TAGS = [
+  "ha-icon-button-group",
+  "ha-icon-button-toggle",
+  "light-color-rgb-picker",
+  "light-color-temp-picker",
+  "ha-more-info-light-favorite-colors",
+] as const;
+
 export const STATE_CONTROLS = {
   toggle: { tag: "ha-state-control-toggle", load: "switch" },
-  brightness: { tag: "ha-state-control-light-brightness", load: "light" },
+  brightness: {
+    tag: "ha-state-control-light-brightness",
+    load: "light",
+    extraTags: LIGHT_TAGS,
+  },
   fan_speed: {
     tag: "ha-state-control-fan-speed",
     load: "fan",
@@ -62,6 +75,16 @@ export const STATE_CONTROLS = {
     extraTags: ["ha-control-button", "ha-markdown", "ha-service-control"],
     inline: true,
   },
+  /**
+   * The native more-info content of the entity (`more-info-content`, which
+   * picks `more-info-<domain>`), under the old-style state row where
+   * more-info shows one. `load` is the entity's domain.
+   */
+  more_info: {
+    tag: "more-info-content",
+    load: "",
+    extraTags: ["state-card-content"],
+  },
   /** Big "Press" button (buttons have no native more-info control). */
   press: {
     tag: "ha-control-button-group",
@@ -73,16 +96,103 @@ export const STATE_CONTROLS = {
 
 export type StateControlName = keyof typeof STATE_CONTROLS;
 
-const BRIGHTNESS_MODES = [
-  "brightness",
-  "color_temp",
-  "hs",
-  "xy",
-  "rgb",
-  "rgbw",
-  "rgbww",
-  "white",
+/** `DOMAINS_WITH_NEW_MORE_INFO` (`src/dialogs/more-info/const.ts`). */
+const DOMAINS_WITH_NEW_MORE_INFO = [
+  "alarm_control_panel",
+  "cover",
+  "climate",
+  "conversation",
+  "fan",
+  "humidifier",
+  "input_boolean",
+  "lawn_mower",
+  "light",
+  "lock",
+  "siren",
+  "script",
+  "switch",
+  "timer",
+  "vacuum",
+  "valve",
+  "water_heater",
+  "weather",
+  "media_player",
 ];
+
+/** `DOMAINS_NO_INFO`: no state row above the content. */
+const DOMAINS_NO_INFO = ["camera", "configurator"];
+
+/**
+ * Domains whose more-info is a view of its own (or only the state row) and
+ * no reusable control: shown with `more_info`.
+ */
+const NATIVE_MORE_INFO_DOMAINS = [
+  "automation",
+  "camera",
+  "conversation",
+  "counter",
+  "date",
+  "datetime",
+  "group",
+  "image",
+  "input_datetime",
+  "input_number",
+  "input_select",
+  "input_text",
+  "number",
+  "person",
+  "remote",
+  "scene",
+  "select",
+  "sun",
+  "text",
+  "time",
+  "timer",
+  "update",
+  "weather",
+];
+
+/** `computeShowNewMoreInfo` (`src/dialogs/more-info/const.ts`). */
+const showsNewMoreInfo = (stateObj: HassEntity): boolean => {
+  const domain = computeDomain(stateObj.entity_id);
+  if (domain === "group") {
+    const domains = new Set(
+      ((stateObj.attributes.entity_id as string[] | undefined) ?? []).map(
+        computeDomain,
+      ),
+    );
+    const [groupDomain] = domains;
+    return (
+      domains.size === 1 &&
+      groupDomain !== "group" &&
+      DOMAINS_WITH_NEW_MORE_INFO.includes(groupDomain!)
+    );
+  }
+  return DOMAINS_WITH_NEW_MORE_INFO.includes(domain);
+};
+
+/** more-info shows `state-card-content` above the content (`ha-more-info-info`). */
+export const showsStateRow = (stateObj: HassEntity): boolean =>
+  !showsNewMoreInfo(stateObj) &&
+  !DOMAINS_NO_INFO.includes(computeDomain(stateObj.entity_id));
+
+/** `src/data/light.ts`. */
+const COLOR_MODES = ["hs", "xy", "rgb", "rgbw", "rgbww"];
+const BRIGHTNESS_MODES = [...COLOR_MODES, "color_temp", "brightness", "white"];
+
+const lightSupportsMode = (stateObj: HassEntity, modes: string[]) =>
+  (stateObj.attributes.supported_color_modes as string[] | undefined)?.some(
+    (mode) => modes.includes(mode),
+  ) ?? false;
+
+export const lightSupportsBrightness = (stateObj: HassEntity) =>
+  lightSupportsMode(stateObj, BRIGHTNESS_MODES);
+export const lightSupportsColor = (stateObj: HassEntity) =>
+  lightSupportsMode(stateObj, COLOR_MODES);
+export const lightSupportsColorTemp = (stateObj: HassEntity) =>
+  lightSupportsMode(stateObj, ["color_temp"]);
+export const lightSupportsWhite = (stateObj: HassEntity) =>
+  lightSupportsMode(stateObj, ["white"]);
 
 export const supports = (stateObj: HassEntity, feature: number) =>
   ((stateObj.attributes.supported_features ?? 0) & feature) !== 0;
@@ -94,16 +204,10 @@ export const autoStateControl = (
   const domain = computeDomain(stateObj.entity_id);
   switch (domain) {
     case "light":
-      return (
-        stateObj.attributes.supported_color_modes as string[] | undefined
-      )?.some((mode) => BRIGHTNESS_MODES.includes(mode))
-        ? "brightness"
-        : "toggle";
+      return lightSupportsBrightness(stateObj) ? "brightness" : "toggle";
     case "switch":
     case "input_boolean":
     case "siren":
-    case "automation":
-    case "remote":
       return "toggle";
     case "fan":
       return supports(stateObj, 1) ? "fan_speed" : "toggle";
@@ -135,7 +239,9 @@ export const autoStateControl = (
     case "input_button":
       return "press";
     default:
-      return undefined;
+      return NATIVE_MORE_INFO_DOMAINS.includes(domain)
+        ? "more_info"
+        : undefined;
   }
 };
 
