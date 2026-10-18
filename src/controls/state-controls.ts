@@ -318,3 +318,22 @@ export const DOMAINS_WITHOUT_STATE_HEADER = [
   "water_heater",
   "media_player",
 ];
+
+/** Control a state card shows for its `control` option (`auto` included). */
+export const resolveStateControl = (
+  control: string | undefined,
+  stateObj: HassEntity | undefined,
+): StateControlName | undefined => {
+  const name = control ?? "auto";
+  if (name === "none") return undefined;
+  if (name !== "auto") return name as StateControlName;
+  return stateObj ? autoStateControl(stateObj) : undefined;
+};
+
+/** `show_state` when unset: the state header where more-info has one. */
+export const defaultShowState = (
+  entityId: string,
+  control: StateControlName | undefined,
+): boolean =>
+  !DOMAINS_WITHOUT_STATE_HEADER.includes(computeDomain(entityId)) &&
+  control !== "more_info";

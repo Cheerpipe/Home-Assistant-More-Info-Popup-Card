@@ -1,5 +1,5 @@
 /**
- * Native `ha-form` editors (`getConfigForm`) for the control cards. The
+ * Native `ha-form` schemas of the control card editors (`editors.ts`). The
  * controls list uses HA's `object` selector with `multiple`, which gives the
  * native reorderable list with an edit form per item.
  */

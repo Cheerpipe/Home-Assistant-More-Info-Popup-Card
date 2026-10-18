@@ -69,9 +69,10 @@ import {
 import {
   autoStateControl,
   DOMAIN_TAGS,
-  DOMAINS_WITHOUT_STATE_HEADER,
   LIGHT_TAGS,
   showsStateRow,
+  defaultShowState,
+  resolveStateControl,
   lightSupportsBrightness,
   lightSupportsColor,
   lightSupportsColorTemp,
@@ -80,7 +81,7 @@ import {
   supports,
   type StateControlName,
 } from "./state-controls";
-import { stateCardForm } from "./forms";
+import { STATE_CARD_EDITOR_TAG } from "./editors";
 import { cardAppearanceStyles, type CardAppearance } from "./styles";
 
 export const STATE_CARD_TYPE = "more-info-state-card";
@@ -212,8 +213,9 @@ const autoStateOverride = (
 };
 
 export class MoreInfoStateCard extends LitElement {
-  public static getConfigForm() {
-    return stateCardForm();
+  /** `ha-form` editor that shows the values used for unset options. */
+  public static getConfigElement() {
+    return document.createElement(STATE_CARD_EDITOR_TAG);
   }
 
   public static getStubConfig(
@@ -333,10 +335,7 @@ export class MoreInfoStateCard extends LitElement {
   }
 
   private get _controlName(): StateControlName | undefined {
-    const control = this._config?.control ?? "auto";
-    if (control === "none") return undefined;
-    if (control !== "auto") return control;
-    return this._stateObj ? autoStateControl(this._stateObj) : undefined;
+    return resolveStateControl(this._config?.control, this._stateObj);
   }
 
   private _loadingKey?: string;
@@ -378,11 +377,9 @@ export class MoreInfoStateCard extends LitElement {
   }
 
   private get _showState(): boolean {
-    const domain = computeDomain(this._config!.entity);
     return (
       this._config!.show_state ??
-      (!DOMAINS_WITHOUT_STATE_HEADER.includes(domain) &&
-        this._controlName !== "more_info")
+      defaultShowState(this._config!.entity, this._controlName)
     );
   }
 

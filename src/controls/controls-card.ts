@@ -33,18 +33,20 @@ import {
   NUMBER_DEBOUNCE,
   normalizeOptions,
   splitAction,
+  defaultShowArrow,
   type ControlItemConfig,
   type ControlsCardConfig,
 } from "./items";
 import { ensureMoreInfoElements } from "./loader";
-import { controlsCardForm } from "./forms";
+import { CONTROLS_CARD_EDITOR_TAG } from "./editors";
 import { cardAppearanceStyles, chipStyles } from "./styles";
 
 export const CONTROLS_CARD_TYPE = "more-info-controls-card";
 
 export class MoreInfoControlsCard extends LitElement {
-  public static getConfigForm() {
-    return controlsCardForm();
+  /** `ha-form` editor that shows the values used for unset options. */
+  public static getConfigElement() {
+    return document.createElement(CONTROLS_CARD_EDITOR_TAG);
   }
 
   public static getStubConfig(
@@ -468,8 +470,7 @@ export class MoreInfoControlsCard extends LitElement {
     const action = item.tap_action ?? {
       action: stateObj ? "more-info" : "none",
     };
-    const arrow =
-      item.show_arrow ?? ["navigate", "more-info"].includes(action.action);
+    const arrow = item.show_arrow ?? defaultShowArrow(item, Boolean(stateObj));
     const value =
       item.value ?? (stateObj ? this.hass!.formatEntityState(stateObj) : "");
     const run = () => this._runAction(item, action);

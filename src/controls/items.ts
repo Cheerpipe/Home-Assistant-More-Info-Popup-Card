@@ -41,6 +41,18 @@ export interface ControlItemConfig {
   show_arrow?: boolean;
 }
 
+/**
+ * `show_arrow` when unset: the chevron of the navigation actions. Without
+ * `tap_action`, an item with an existing entity opens its more-info.
+ */
+export const defaultShowArrow = (
+  item: ControlItemConfig,
+  hasState: boolean,
+): boolean =>
+  ["navigate", "more-info"].includes(
+    (item.tap_action ?? { action: hasState ? "more-info" : "none" }).action,
+  );
+
 /** Default action of an icon `button` without `tap_action` / `perform_action`. */
 export const BUTTON_DEFAULTS: Record<string, string> = {
   button: "button.press",
