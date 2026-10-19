@@ -145,7 +145,7 @@ export const es: Record<keyof typeof en, string> = {
   "controls.show_last_changed": "Mostrar último cambio",
   "controls.state_override": "Texto del estado",
   "controls.state_override_helper":
-    "Reemplaza el texto del estado y el texto del botón de los controles trigger, push y press.",
+    "Reemplaza el texto del estado y el texto del botón de los controles trigger, push, press y script.",
   "controls.appearance": "Apariencia",
   "controls.appearance.plain": "Sin marco (como more-info)",
   "controls.appearance.card": "Tarjeta",

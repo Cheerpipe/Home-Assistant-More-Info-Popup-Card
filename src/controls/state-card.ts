@@ -1281,7 +1281,7 @@ export class MoreInfoStateCard extends LitElement {
             @click=${run}
           >
             <ha-svg-icon .path=${mdiPlay}></ha-svg-icon>
-            ${hass.localize("ui.card.script.run")}
+            ${this._config!.state_override || hass.localize("ui.card.script.run")}
           </ha-control-button>
         </ha-control-button-group>
       </div>

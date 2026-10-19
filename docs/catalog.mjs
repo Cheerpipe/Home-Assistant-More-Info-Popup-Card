@@ -578,7 +578,7 @@ export const PAGES = [
           inPopup(
             "state_override",
             "Custom state text",
-            "`state_override` replaces the state text, and the button text of the trigger, push and press controls.",
+            "`state_override` replaces the state text, and the button text of the trigger, push, press and script controls.",
             "light.kitchen_lights",
             [
               state("light.kitchen_lights", {
