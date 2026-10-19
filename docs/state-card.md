@@ -236,7 +236,7 @@ entity: vacuum.demo_vacuum_0_ground_floor
 
 ### Custom state text
 
-`state_override` replaces the state text.
+`state_override` replaces the state text, and the button text of the trigger, push and press controls.
 
 ![Custom state text](images/state_override.png)
 

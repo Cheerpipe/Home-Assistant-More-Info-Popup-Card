@@ -394,6 +394,7 @@ export class MoreInfoStateCard extends LitElement {
         .stateObj=${stateObj}
         .variant=${name === "push" ? "button" : "switch"}
         .icon=${this._config!.icon}
+        .label=${this._config!.state_override}
         .layout=${this._config!.button_layout ?? "vertical"}
         .showCancel=${this._config!.show_cancel !== false}
       ></more-info-popup-trigger-control>`;
@@ -1307,7 +1308,10 @@ export class MoreInfoStateCard extends LitElement {
           @click=${press}
         >
           <ha-svg-icon .path=${mdiGestureTapButton}></ha-svg-icon>
-          ${this.hass!.localize("ui.card.button.press")}
+          ${
+            this._config!.state_override ||
+            this.hass!.localize("ui.card.button.press")
+          }
         </ha-control-button>
       </ha-control-button-group>
     `;

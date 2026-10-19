@@ -77,6 +77,9 @@ export class MoreInfoTriggerControl extends LitElement {
   /** Replaces the entity icon. */
   @property({ attribute: false }) accessor icon: string | undefined;
 
+  /** Replaces the action name (Press, Run, Trigger). */
+  @property({ attribute: false }) accessor label: string | undefined;
+
   @property({ attribute: false }) accessor variant: TriggerVariant = "switch";
 
   @property({ attribute: false }) accessor layout: PushLayout = "vertical";
@@ -185,6 +188,7 @@ export class MoreInfoTriggerControl extends LitElement {
   }
 
   private get _label(): string {
+    if (this.label) return this.label;
     const hass = this.hass!;
     switch (this._domain) {
       case "script":

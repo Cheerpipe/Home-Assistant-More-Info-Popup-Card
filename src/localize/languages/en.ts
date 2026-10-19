@@ -141,6 +141,8 @@ export const en = {
     "Cancel button under a running script (trigger and push controls).",
   "controls.show_last_changed": "Show last changed",
   "controls.state_override": "State text",
+  "controls.state_override_helper":
+    "Replaces the state text, and the button text of the trigger, push and press controls.",
   "controls.appearance": "Appearance",
   "controls.appearance.plain": "Plain (like more-info)",
   "controls.appearance.card": "Card",

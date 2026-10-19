@@ -144,6 +144,8 @@ export const es: Record<keyof typeof en, string> = {
     "Botón Cancelar bajo un script en ejecución (controles disparador y pulsador).",
   "controls.show_last_changed": "Mostrar último cambio",
   "controls.state_override": "Texto del estado",
+  "controls.state_override_helper":
+    "Reemplaza el texto del estado y el texto del botón de los controles trigger, push y press.",
   "controls.appearance": "Apariencia",
   "controls.appearance.plain": "Sin marco (como more-info)",
   "controls.appearance.card": "Tarjeta",

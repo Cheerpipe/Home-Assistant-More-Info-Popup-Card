@@ -180,7 +180,7 @@ entity: fan.living_room
 control: auto # auto | none | toggle | brightness | fan_speed | position | tilt | cover_toggle | cover_buttons | valve_position | valve_toggle | valve_buttons | lock | alarm_modes | temperature | climate_humidity | humidity | water_heater | vacuum_status | lawn_mower_status | media_player | more_info | script | press | trigger | push
 show_state: true # default: like more-info (climate, humidifier and water heater have none)
 show_last_changed: true
-state_override: "" # replaces the state text
+state_override: "" # replaces the state text (and the button text)
 icon: mdi:string-lights # replaces the entity icon (toggle "on" icon, trigger, push)
 icon_off: mdi:string-lights-off # toggle "off" icon
 color: purple # active color of the control: theme color name or any CSS color
