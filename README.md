@@ -1,5 +1,9 @@
 # More-Info Popup Card
 
+[![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
+[![Validate](https://github.com/Cheerpipe/Home-Assistant-More-Info-Popup-Card/actions/workflows/validate.yml/badge.svg)](https://github.com/Cheerpipe/Home-Assistant-More-Info-Popup-Card/actions/workflows/validate.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A Home Assistant container card that opens as a popup **indistinguishable from the
 native more-info dialog**: same dialog, header, animations, bottom sheet on
 mobile and back-button behavior. Its body is a **sections grid** of any cards,
