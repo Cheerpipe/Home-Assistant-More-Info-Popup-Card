@@ -1,7 +1,7 @@
 # More-Info Popup Card
 
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://hacs.xyz/docs/faq/custom_repositories)
-[![Validate](https://github.com/Cheerpipe/Home-Assistant-More-Info-Popup-Card/actions/workflows/validate.yml/badge.svg)](https://github.com/Cheerpipe/Home-Assistant-More-Info-Popup-Card/actions/workflows/validate.yml)
+[![Validate](https://github.com/Cheerpipe/ha-more-info-popup-card/actions/workflows/validate.yml/badge.svg)](https://github.com/Cheerpipe/ha-more-info-popup-card/actions/workflows/validate.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 A Home Assistant container card that opens as a popup **indistinguishable from the
@@ -18,7 +18,7 @@ state header with its big control, and the row of chips with selects, toggles,
 numbers, actions and command buttons) so a popup can be a fully **customized
 more-info**. A **light more-info for WLED** (secondary color, palette previews,
 effects and presets) lives in its own integration,
-**[WLED More-Info](https://github.com/Cheerpipe/Home-Assistant-WLED-More-Info)**.
+**[WLED More-Info](https://github.com/Cheerpipe/ha-wled-more-info)**.
 
 Requires Home Assistant **2026.10** or newer. 📖 **[Documentation with ~70
 captured examples](docs/README.md)**.
@@ -114,7 +114,7 @@ area ▸ device breadcrumb, history, settings and ⋮ menu, like the native head
 
 Add this one card to a view and every WLED light on it (each segment and the
 main light) opens the WLED card of the
-[WLED More-Info](https://github.com/Cheerpipe/Home-Assistant-WLED-More-Info)
+[WLED More-Info](https://github.com/Cheerpipe/ha-wled-more-info)
 integration instead of the native more-info:
 
 ```yaml
@@ -246,7 +246,7 @@ controls:
 ### WLED lights
 
 The WLED card (`custom:more-info-wled-state-card`) moved to its own
-integration, **[WLED More-Info](https://github.com/Cheerpipe/Home-Assistant-WLED-More-Info)**:
+integration, **[WLED More-Info](https://github.com/Cheerpipe/ha-wled-more-info)**:
 Home Assistant talks to the device for it, so the secondary color, palette
 previews, effect details and presets also work over https, in the app and away
 from home. Install it from HACS (type _Integration_); existing cards keep
