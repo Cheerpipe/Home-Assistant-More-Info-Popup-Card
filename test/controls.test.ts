@@ -7,6 +7,7 @@ import {
 import { inferControlType } from "../src/controls/items";
 import {
   autoStateControl,
+  remountsStateCard,
   showsStateRow,
 } from "../src/controls/state-controls";
 import type { HassEntity } from "../src/ha/types";
@@ -115,5 +116,27 @@ describe("attribute selects", () => {
       expect.arrayContaining(["preset_mode", "direction", "oscillating"]),
     );
     expect(availableAttributes(fan)).not.toContain("effect");
+  });
+});
+
+describe("remountsStateCard", () => {
+  const base = { entity: "switch.coffee", control: "toggle" as const };
+
+  it("mounts the first config", () => {
+    expect(remountsStateCard(undefined, base)).toBe(true);
+  });
+
+  it("keeps the control when only text or colors change", () => {
+    const next = { ...base, state_override: "Heating", color: "red" };
+    expect(remountsStateCard(base, next)).toBe(false);
+  });
+
+  it.each([
+    { entity: "switch.grinder" },
+    { control: "trigger" as const },
+    { show_state: false },
+    { show_last_changed: false },
+  ])("remounts when %o changes", (change) => {
+    expect(remountsStateCard(base, { ...base, ...change })).toBe(true);
   });
 });

@@ -4,6 +4,7 @@
  */
 import { computeDomain } from "../ha/entity";
 import type { HassEntity } from "../ha/types";
+import type { StateCardConfig } from "./state-card";
 
 export interface StateControlSpec {
   tag: string;
@@ -337,3 +338,23 @@ export const defaultShowState = (
 ): boolean =>
   !DOMAINS_WITHOUT_STATE_HEADER.includes(computeDomain(entityId)) &&
   control !== "more_info";
+
+/** State card options that change what it loads and mounts. */
+const STATE_CARD_MOUNT_KEYS = [
+  "entity",
+  "control",
+  "show_state",
+  "show_last_changed",
+] as const;
+
+/**
+ * Whether a new config needs the state card to reload and remount its control.
+ * Other options (state text, colors, layout) redraw in place, so templated
+ * configs that resend them on every state change keep the mounted control.
+ */
+export const remountsStateCard = (
+  prev:
+    Pick<StateCardConfig, (typeof STATE_CARD_MOUNT_KEYS)[number]> | undefined,
+  next: Pick<StateCardConfig, (typeof STATE_CARD_MOUNT_KEYS)[number]>,
+): boolean =>
+  !prev || STATE_CARD_MOUNT_KEYS.some((key) => prev[key] !== next[key]);

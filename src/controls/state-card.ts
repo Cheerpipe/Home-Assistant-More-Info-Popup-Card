@@ -77,6 +77,7 @@ import {
   lightSupportsColor,
   lightSupportsColorTemp,
   lightSupportsWhite,
+  remountsStateCard,
   STATE_CONTROLS,
   supports,
   type StateControlName,
@@ -272,7 +273,12 @@ export class MoreInfoStateCard extends LitElement {
     ) {
       throw new Error(`Unknown control "${config.control}"`);
     }
+    const prev = this._config;
     this._config = config;
+    if (prev?.icon !== config.icon || prev?.icon_off !== config.icon_off) {
+      this._loadIconPaths(config);
+    }
+    if (!remountsStateCard(prev, config)) return;
     this._ready = false;
     this._loadingKey = undefined;
     this._scriptData = { action: config.entity };
@@ -281,7 +287,6 @@ export class MoreInfoStateCard extends LitElement {
     this._setOpenState("normal");
     this._entry = undefined;
     this._entryLoaded = undefined;
-    this._loadIconPaths(config);
   }
 
   /** Paths of `icon` / `icon_off` for the toggle (it only takes paths). */
@@ -295,7 +300,9 @@ export class MoreInfoStateCard extends LitElement {
       icon ? resolveIconPath(icon) : undefined,
       iconOff ? resolveIconPath(iconOff) : undefined,
     ]).then(([on, off]) => {
-      if (this._config !== config) return;
+      if (this._config?.icon !== icon || this._config?.icon_off !== iconOff) {
+        return;
+      }
       this._iconPaths = { on, off };
     });
   }
